@@ -1,0 +1,20 @@
+{{ extends "Folder/Main-file_name.html.twig" }}
+
+{{ define "body" }}
+    <SUB1>
+
+    {{ template "content" .Data }}
+    </SUB1>
+{{ end }}
+
+{{ define "content" }}
+	{{ if eq 1 1 }}
+		{{ range .Slice }}
+			{{ . }}
+	{{ else }}
+		NO SLICE
+		{{ end }}
+	{{ else }}
+	{{ end }}
+<DEFAULT CONTENT>
+{{ end }}
