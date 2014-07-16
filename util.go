@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 package jingo
-=======
-package sweetpl
->>>>>>> ef5537f7c9ae3bc701b1b186db75f22b8f8d4a62
 
 import (
 	"fmt"
