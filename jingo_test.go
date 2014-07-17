@@ -9,10 +9,10 @@ import (
 
 type TemplateData struct {
 	Title string
-	Path  string
-	User  interface{}
-	Nav   map[string]string
-	Data  map[string]interface{}
+	//Path  string
+	//User  interface{}
+	//Nav   map[string]string
+	Data map[string]interface{}
 }
 
 func MustContain(t *testing.T, str *string, check string) {

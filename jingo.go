@@ -12,8 +12,6 @@ var re_extends *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)
 var re_defineTag *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
 var re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
 
-//macro
-
 type Jingo struct {
 	Loader  TemplateLoader
 	FuncMap map[string]interface{} //template.FuncMap
@@ -57,7 +55,7 @@ func (j *Jingo) add(stack *[]*NamedTemplate, name string) error {
 	}
 
 	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
-	if len(extendsMatches) == 2 { //Did Match
+	if len(extendsMatches) == 2 {
 		err := j.add(stack, extendsMatches[1])
 		if err != nil {
 			return err
@@ -68,8 +66,9 @@ func (j *Jingo) add(stack *[]*NamedTemplate, name string) error {
 		Name: name,
 		Src:  tplSrc,
 	}
+
 	*stack = append((*stack), namedTemplate)
-	// The stack is ordered 'general' to 'specific'
+
 	return nil
 }
 
