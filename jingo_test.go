@@ -9,10 +9,7 @@ import (
 
 type TemplateData struct {
 	Title string
-	//Path  string
-	//User  interface{}
-	//Nav   map[string]string
-	Data map[string]interface{}
+	Data  map[string]interface{}
 }
 
 func MustContain(t *testing.T, str *string, check string) {
@@ -43,20 +40,36 @@ func TplRun(t *testing.T, j *Jingo, name string, data interface{}, check ...stri
 }
 
 func TestTemplate(t *testing.T) {
-	j1 := &Jingo{
-		Loader: &MapLoader{
-			"vars.html":                       `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
-			"Folder/Main-file_name.html.twig": tplMain,
-			"sub1.html":                       tplSub1,
-			"sub2.html":                       tplSub2,
-		},
+	m1 := map[string]string{
+		"vars.html":                       `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
+		"Folder/Main-file_name.html.twig": tplMain,
+		"sub1.html":                       tplSub1,
+		"sub2.html":                       tplSub2,
 	}
 
-	j2 := &Jingo{
-		Loader: &DirLoader{
-			BasePath: "./test/templates",
-		},
+	m2 := map[string]string{
+		"varsa.html":                       `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
+		"Folder/Main-file_namea.html.twig": tplMain,
+		"sub1a.html":                       tplSub1,
+		"sub2a.html":                       tplSub2,
 	}
+
+	loader1 := &MapLoader{m: &m1}
+
+	loader2 := &MapLoader{m: &m2}
+
+	loader3 := NewDirLoader("./test/templates")
+
+	loader4 := NewDirLoader("./test/additional/templates")
+
+	j1 := NewJingo()
+	j1.AddLoaders(loader1, loader2)
+
+	j2 := NewJingo()
+	j2.AddLoaders(loader3, loader4)
+
+	j3 := NewJingo()
+	j3.AddLoaders(loader1, loader4)
 
 	data := &TemplateData{
 		Title: "Hello World",
@@ -66,15 +79,27 @@ func TestTemplate(t *testing.T) {
 		},
 	}
 
+	data1 := &TemplateData{
+		Title: "Hello World A",
+		Data: map[string]interface{}{
+			"Key":   "Value A",
+			"Slice": []string{"A", "B", "C"},
+		},
+	}
+
 	jingoes := []*Jingo{
 		j1,
 		j2,
+		j3,
 	}
 
 	for _, j := range jingoes {
 		TplRun(t, j, "vars.html", data, "<title>Hello World</title>", "Key=Value")
 		TplRun(t, j, "sub2.html", data, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
 		TplRun(t, j, "sub1.html", data, "<MAIN>", "<SUB1>", "</SUB1>", "</MAIN>")
+		TplRun(t, j, "varsa.html", data1, "<title>Hello World A</title>", "Key=Value A")
+		TplRun(t, j, "sub2a.html", data1, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
+		TplRun(t, j, "sub1a.html", data1, "<MAIN>", "<SUB1>", "</SUB1>", "</MAIN>")
 	}
 }
 

@@ -3,13 +3,24 @@ package jingo
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 type TemplateLoader interface {
 	LoadTemplate(string) (string, error)
+	ListTemplates() interface{}
+}
+
+type BaseLoader struct {
+	e error
+}
+
+func (b *BaseLoader) ListTemplates() interface{} {
+	return "not implemented"
 }
 
 type DirLoader struct {
+	BaseLoader
 	BasePath string
 }
 
@@ -23,11 +34,28 @@ func (l *DirLoader) LoadTemplate(name string) (string, error) {
 	return string(b), err
 }
 
-type MapLoader map[string]string
+func (l *DirLoader) ListTemplates() interface{} {
+	return nil
+}
+
+func NewDirLoader(basepath string) *DirLoader {
+	d := &DirLoader{}
+	b, err := filepath.Abs(basepath)
+	if err != nil {
+		d.e = Errf("basepath returned error", basepath)
+	}
+	d.BasePath = b
+	return d
+}
+
+type MapLoader struct {
+	BaseLoader
+	m *map[string]string
+}
 
 // MapLoader.LoadTemplate gets name from a map.
 func (l *MapLoader) LoadTemplate(name string) (string, error) {
-	src, ok := (*l)[name]
+	src, ok := (*l.m)[name]
 	if !ok {
 		return "", Errf("Could not find template " + name)
 	}

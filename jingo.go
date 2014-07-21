@@ -12,12 +12,25 @@ var re_extends *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)
 var re_defineTag *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
 var re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
 
-type Jingo struct {
-	Loader  TemplateLoader
-	FuncMap map[string]interface{} //template.FuncMap
+func NewJingo() *Jingo {
+	j := &Jingo{}
+	j.Loaders = make([]TemplateLoader, 0)
+	return j
 }
 
-type NamedTemplate struct {
+type Jingo struct {
+	Loaders []TemplateLoader
+	FuncMap map[string]interface{}
+}
+
+func (j *Jingo) AddLoaders(loaders ...TemplateLoader) {
+	for _, l := range loaders {
+		j.Loaders = append(j.Loaders, l)
+	}
+	return
+}
+
+type Node struct {
 	Name string
 	Src  string
 }
@@ -44,8 +57,21 @@ func (j *Jingo) GetTemplate(w io.Writer, name string) (*template.Template, error
 	return j.assemble(name)
 }
 
-func (j *Jingo) add(stack *[]*NamedTemplate, name string) error {
-	tplSrc, err := j.Loader.LoadTemplate(name)
+func (j *Jingo) getTemplate(name string) (string, error) {
+	var e error
+	for _, l := range j.Loaders {
+		t, err := l.LoadTemplate(name)
+		if err == nil {
+			return t, nil
+		} else {
+			e = err
+		}
+	}
+	return "", e
+}
+
+func (j *Jingo) add(stack *[]*Node, name string) error {
+	tplSrc, err := j.getTemplate(name)
 	if err != nil {
 		return err
 	}
@@ -62,18 +88,19 @@ func (j *Jingo) add(stack *[]*NamedTemplate, name string) error {
 		}
 		tplSrc = re_extends.ReplaceAllString(tplSrc, "")
 	}
-	namedTemplate := &NamedTemplate{
+
+	node := &Node{
 		Name: name,
 		Src:  tplSrc,
 	}
 
-	*stack = append((*stack), namedTemplate)
+	*stack = append((*stack), node)
 
 	return nil
 }
 
 func (j *Jingo) assemble(name string) (*template.Template, error) {
-	stack := []*NamedTemplate{}
+	stack := []*Node{}
 
 	err := j.add(&stack, name)
 
@@ -85,8 +112,9 @@ func (j *Jingo) assemble(name string) (*template.Template, error) {
 	blockId := 0
 
 	var rootTemplate *template.Template
-	for _, namedTemplate := range stack {
-		namedTemplate.Src = re_defineTag.ReplaceAllStringFunc(namedTemplate.Src, func(raw string) string {
+
+	for _, node := range stack {
+		node.Src = re_defineTag.ReplaceAllStringFunc(node.Src, func(raw string) string {
 			parsed := re_defineTag.FindStringSubmatch(raw)
 			blockName := fmt.Sprintf("BLOCK_%d", blockId)
 			blocks[parsed[1]] = blockName
@@ -96,8 +124,8 @@ func (j *Jingo) assemble(name string) (*template.Template, error) {
 		})
 	}
 
-	for i, namedTemplate := range stack {
-		namedTemplate.Src = re_templateTag.ReplaceAllStringFunc(namedTemplate.Src, func(raw string) string {
+	for i, node := range stack {
+		node.Src = re_templateTag.ReplaceAllStringFunc(node.Src, func(raw string) string {
 			parsed := re_templateTag.FindStringSubmatch(raw)
 			origName := parsed[1]
 			replacedName, ok := blocks[origName]
@@ -116,15 +144,15 @@ func (j *Jingo) assemble(name string) (*template.Template, error) {
 		var thisTemplate *template.Template
 
 		if i == 0 {
-			thisTemplate = template.New(namedTemplate.Name)
+			thisTemplate = template.New(node.Name)
 			rootTemplate = thisTemplate
 		} else {
-			thisTemplate = rootTemplate.New(namedTemplate.Name)
+			thisTemplate = rootTemplate.New(node.Name)
 		}
 
 		thisTemplate.Funcs(j.FuncMap)
 
-		_, err := thisTemplate.Parse(namedTemplate.Src)
+		_, err := thisTemplate.Parse(node.Src)
 		if err != nil {
 			return nil, err
 		}
