@@ -31,27 +31,31 @@ func TplRun(t *testing.T, j *Jingo, name string, data interface{}, check ...stri
 		return
 	}
 
+	//from cache
+	j.Render(w, name, data)
+
 	str := w.String()
 	fmt.Println(str)
 
 	for _, c := range check {
 		MustContain(t, &str, c)
 	}
+
 }
 
 func TestTemplate(t *testing.T) {
 	m1 := map[string]string{
-		"vars.html":                       `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
-		"Folder/Main-file_name.html.twig": tplMain,
-		"sub1.html":                       tplSub1,
-		"sub2.html":                       tplSub2,
+		"vars.html":                        `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
+		"Folder/Main-file_name.html.jingo": tplMain,
+		"sub1.html":                        tplSub1,
+		"sub2.html":                        tplSub2,
 	}
 
 	m2 := map[string]string{
-		"varsa.html":                       `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
-		"Folder/Main-file_namea.html.twig": tplMain,
-		"sub1a.html":                       tplSub1,
-		"sub2a.html":                       tplSub2,
+		"varsa.html":                        `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
+		"Folder/Main-file_namea.html.jingo": tplMain,
+		"sub1a.html":                        tplSub1,
+		"sub2a.html":                        tplSub2a,
 	}
 
 	loader1 := &MapLoader{m: &m1}
@@ -98,7 +102,7 @@ func TestTemplate(t *testing.T) {
 		TplRun(t, j, "sub2.html", data, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
 		TplRun(t, j, "sub1.html", data, "<MAIN>", "<SUB1>", "</SUB1>", "</MAIN>")
 		TplRun(t, j, "varsa.html", data1, "<title>Hello World A</title>", "Key=Value A")
-		TplRun(t, j, "sub2a.html", data1, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
+		TplRun(t, j, "sub2a.html", data1, "<MAIN>", "<SUB1>", "<SUB2A>", "</SUB2A>", "</SUB1>", "</MAIN>")
 		TplRun(t, j, "sub1a.html", data1, "<MAIN>", "<SUB1>", "</SUB1>", "</MAIN>")
 	}
 }
@@ -107,7 +111,7 @@ var tplMain string = `<MAIN>
 {{ template "body" }}
 </MAIN>`
 
-var tplSub1 string = `{{ extends "Folder/Main-file_name.html.twig" }}
+var tplSub1 string = `{{ extends "Folder/Main-file_name.html.jingo" }}
 {{ define "body" }}
 <SUB1>
 
@@ -133,4 +137,11 @@ var tplSub2 string = `
 
 {{ define "content" }}
 <SUB2></SUB2>
+{{ end }}`
+
+var tplSub2a string = `
+{{ extends 'sub1.html' }}
+
+{{ define "content" }}
+<SUB2A></SUB2A>
 {{ end }}`

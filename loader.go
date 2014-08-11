@@ -3,48 +3,66 @@ package jingo
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 )
 
 type TemplateLoader interface {
-	LoadTemplate(string) (string, error)
+	Load(string) (string, error)
 	ListTemplates() interface{}
 }
 
 type BaseLoader struct {
-	e error
+	e          []error
+	Extensions []string
 }
 
 func (b *BaseLoader) ListTemplates() interface{} {
 	return "not implemented"
 }
 
-type DirLoader struct {
-	BaseLoader
-	BasePath string
+func (b *BaseLoader) ValidExtension(ext string) bool {
+	for _, extension := range b.Extensions {
+		if extension == ext {
+			return true
+		}
+	}
+	return false
 }
 
-// DirLoader.LoadTemplate gets BaseAddress + name. No safety checking yet.
-func (l *DirLoader) LoadTemplate(name string) (string, error) {
-	file, err := os.Open(l.BasePath + "/" + name)
-	if err != nil {
-		return "", err
+type DirLoader struct {
+	BaseLoader
+	Paths []string
+}
+
+func (l *DirLoader) Load(name string) (string, error) {
+	for _, p := range l.Paths {
+		f := filepath.Join(p, name)
+		if l.ValidExtension(filepath.Ext(f)) {
+			if _, err := os.Stat(f); err == nil {
+				file, err := os.Open(f)
+				r, err := ioutil.ReadAll(file)
+				return string(r), err
+			}
+		}
 	}
-	b, err := ioutil.ReadAll(file)
-	return string(b), err
+	return "", Errf("Template %s does not exist", name)
 }
 
 func (l *DirLoader) ListTemplates() interface{} {
 	return nil
 }
 
-func NewDirLoader(basepath string) *DirLoader {
+func NewDirLoader(basepaths ...string) *DirLoader {
 	d := &DirLoader{}
-	b, err := filepath.Abs(basepath)
-	if err != nil {
-		d.e = Errf("basepath returned error", basepath)
+	d.Extensions = append(d.Extensions, ".html", ".jingo")
+	for _, p := range basepaths {
+		p, err := filepath.Abs(path.Clean(p))
+		if err != nil {
+			d.e = append(d.e, Errf("path returned error", p))
+		}
+		d.Paths = append(d.Paths, p)
 	}
-	d.BasePath = b
 	return d
 }
 
@@ -53,11 +71,9 @@ type MapLoader struct {
 	m *map[string]string
 }
 
-// MapLoader.LoadTemplate gets name from a map.
-func (l *MapLoader) LoadTemplate(name string) (string, error) {
-	src, ok := (*l.m)[name]
-	if !ok {
-		return "", Errf("Could not find template " + name)
+func (l *MapLoader) Load(name string) (string, error) {
+	if src, ok := (*l.m)[name]; ok {
+		return src, nil
 	}
-	return src, nil
+	return "", Errf("Template %s does not exist", name)
 }

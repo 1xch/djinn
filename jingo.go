@@ -4,23 +4,27 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-
 	"regexp"
 )
 
 var re_extends *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
 var re_defineTag *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
 var re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
+var err error
 
+// A blank instance with a default cache
 func NewJingo() *Jingo {
 	j := &Jingo{}
 	j.Loaders = make([]TemplateLoader, 0)
+	j.FuncMap = make(map[string]interface{})
+	j.cache = NewTLRUCache(50)
 	return j
 }
 
 type Jingo struct {
 	Loaders []TemplateLoader
 	FuncMap map[string]interface{}
+	cache   *TLRUCache
 }
 
 func (j *Jingo) AddLoaders(loaders ...TemplateLoader) {
@@ -36,16 +40,19 @@ type Node struct {
 }
 
 func (j *Jingo) Render(w io.Writer, name string, data interface{}) error {
-	tpl, err := j.assemble(name)
-	if err != nil {
-		return err
+	if tmpl, ok := j.cache.Get(name); ok {
+		err = tmpl.Execute(w, data)
+	} else {
+		tmpl, err := j.assemble(name)
+		if err != nil {
+			return err
+		}
+		if tmpl == nil {
+			return Errf("Nil template named %s", name)
+		}
+		err = tmpl.Execute(w, data)
 	}
 
-	if tpl == nil {
-		return Errf("Nil template named %s", name)
-	}
-
-	err = tpl.Execute(w, data)
 	if err != nil {
 		return err
 	}
@@ -53,25 +60,27 @@ func (j *Jingo) Render(w io.Writer, name string, data interface{}) error {
 	return nil
 }
 
-func (j *Jingo) GetTemplate(w io.Writer, name string) (*template.Template, error) {
-	return j.assemble(name)
+func (j *Jingo) FetchTemplate(w io.Writer, name string) (*template.Template, error) {
+	if tmpl, ok := j.cache.Get(name); ok {
+		return tmpl, nil
+	} else {
+		return j.assemble(name)
+	}
 }
 
 func (j *Jingo) getTemplate(name string) (string, error) {
-	var e error
 	for _, l := range j.Loaders {
-		t, err := l.LoadTemplate(name)
+		t, err := l.Load(name)
 		if err == nil {
 			return t, nil
-		} else {
-			e = err
 		}
 	}
-	return "", e
+	return "", Errf("Template %s does not exist", name)
 }
 
 func (j *Jingo) add(stack *[]*Node, name string) error {
 	tplSrc, err := j.getTemplate(name)
+
 	if err != nil {
 		return err
 	}
@@ -157,6 +166,8 @@ func (j *Jingo) assemble(name string) (*template.Template, error) {
 			return nil, err
 		}
 	}
+
+	j.cache.Add(name, rootTemplate)
 
 	return rootTemplate, nil
 }
