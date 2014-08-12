@@ -1,5 +1,5 @@
 #Jingo
-html templating in Go
+html templating tools in Go using standard library html/template
 
 [![GoDoc](https://godoc.org/github.com/thrisp/jingo?status.png)](https://godoc.org/github.com/thrisp/jingo)
 [![Build Status](https://travis-ci.org/thrisp/jingo.svg?branch=develop)](https://travis-ci.org/thrisp/jingo)
