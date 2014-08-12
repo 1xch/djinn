@@ -1,9 +1,14 @@
 #Jingo
 html templating in Go
 
-quickstart:
+[![GoDoc](https://godoc.org/github.com/thrisp/jingo?status.png)](https://godoc.org/github.com/thrisp/jingo)
+[![Build Status](https://travis-ci.org/thrsip/jingo.svg)](https://travis-ci.org/thrisp/jingo)
+
+install:
 
 go get github.com/thrisp/jingo
+
+quickstart:
 
 ```go
 package main
