@@ -7,10 +7,25 @@ import (
 	"regexp"
 )
 
-var re_extends *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
-var re_defineTag *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
-var re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
-var err error
+type (
+	Jingo struct {
+		Loaders []TemplateLoader
+		FuncMap map[string]interface{}
+		cache   *TLRUCache
+	}
+
+	Node struct {
+		Name string
+		Src  string
+	}
+)
+
+var (
+	re_extends     *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
+	re_defineTag   *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
+	re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
+	err            error
+)
 
 // A blank instance with a default cache
 func NewJingo() *Jingo {
@@ -21,22 +36,11 @@ func NewJingo() *Jingo {
 	return j
 }
 
-type Jingo struct {
-	Loaders []TemplateLoader
-	FuncMap map[string]interface{}
-	cache   *TLRUCache
-}
-
 func (j *Jingo) AddLoaders(loaders ...TemplateLoader) {
 	for _, l := range loaders {
 		j.Loaders = append(j.Loaders, l)
 	}
 	return
-}
-
-type Node struct {
-	Name string
-	Src  string
 }
 
 func (j *Jingo) Render(w io.Writer, name string, data interface{}) error {

@@ -15,7 +15,7 @@ type (
 	}
 
 	TLRUCache struct {
-		mu         sync.Mutex
+		sync.RWMutex
 		MaxEntries int
 		list       *list.List
 		cache      map[string]*list.Element
@@ -30,32 +30,27 @@ func NewTLRUCache(maxentries int) *TLRUCache {
 	}
 }
 
-func (c *TLRUCache) commonSync() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-}
-
-// Add adds a value to the cache.
 func (c *TLRUCache) Add(key string, tmpl *template.Template) {
 	if c.cache == nil {
 		c.cache = make(map[string]*list.Element)
 		c.list = list.New()
 	}
-	c.commonSync()
+	c.RLock()
 	if ee, ok := c.cache[key]; ok {
 		c.list.MoveToFront(ee)
 		ee.Value.(*entry).t = tmpl
 		return
 	}
+	c.RUnlock()
 	c.addNew(key, tmpl)
 	if c.MaxEntries != 0 && c.list.Len() > c.MaxEntries {
 		c.RemoveOldest()
 	}
 }
 
-// Get looks up a key's value from the cache.
 func (c *TLRUCache) Get(key string) (tmpl *template.Template, ok bool) {
-	c.commonSync()
+	c.RLock()
+	defer c.RUnlock()
 	if c.cache == nil {
 		return
 	}
@@ -66,27 +61,27 @@ func (c *TLRUCache) Get(key string) (tmpl *template.Template, ok bool) {
 	return nil, false
 }
 
-// Remove removes the provided key from the cache.
 func (c *TLRUCache) Remove(key string) {
-	c.commonSync()
+	c.Lock()
 	if c.cache == nil {
 		return
 	}
 	if ele, hit := c.cache[key]; hit {
 		c.removeElement(ele)
 	}
+	c.Unlock()
 }
 
 func (c *TLRUCache) Clear() {
-	c.commonSync()
+	c.Lock()
 	c.list.Init()
 	c.cache = make(map[string]*list.Element)
 	c.MaxEntries = 0
+	c.Unlock()
 }
 
-// RemoveOldest removes the oldest item from the cache.
 func (c *TLRUCache) RemoveOldest() {
-	c.commonSync()
+	c.Lock()
 	if c.cache == nil {
 		return
 	}
@@ -94,10 +89,10 @@ func (c *TLRUCache) RemoveOldest() {
 	if ele != nil {
 		c.removeElement(ele)
 	}
+	c.Unlock()
 }
 
 func (c *TLRUCache) removeElement(e *list.Element) {
-	c.commonSync()
 	c.list.Remove(e)
 	kv := e.Value.(*entry)
 	delete(c.cache, kv.key)
@@ -109,15 +104,9 @@ func (c *TLRUCache) moveToFront(element *list.Element) {
 }
 
 func (c *TLRUCache) addNew(key string, tmpl *template.Template) {
+	c.Lock()
 	newEntry := &entry{key, tmpl, time.Now()}
 	element := c.list.PushFront(newEntry)
 	c.cache[key] = element
-}
-
-func (c *TLRUCache) statistics() {
-	return
-}
-
-func (c *TLRUCache) Statistics() {
-	return
+	c.Unlock()
 }

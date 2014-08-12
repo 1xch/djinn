@@ -7,14 +7,30 @@ import (
 	"path/filepath"
 )
 
-type TemplateLoader interface {
-	Load(string) (string, error)
-	ListTemplates() interface{}
-}
+type (
+	TemplateLoader interface {
+		Load(string) (string, error)
+		ListTemplates() interface{}
+	}
 
-type BaseLoader struct {
-	e          []error
-	Extensions []string
+	BaseLoader struct {
+		e          []error
+		Extensions []string
+	}
+
+	DirLoader struct {
+		BaseLoader
+		Paths []string
+	}
+
+	MapLoader struct {
+		BaseLoader
+		m *map[string]string
+	}
+)
+
+func (b *BaseLoader) Load(name string) (string, error) {
+	return "not implemented", nil
 }
 
 func (b *BaseLoader) ListTemplates() interface{} {
@@ -30,9 +46,17 @@ func (b *BaseLoader) ValidExtension(ext string) bool {
 	return false
 }
 
-type DirLoader struct {
-	BaseLoader
-	Paths []string
+func NewDirLoader(basepaths ...string) *DirLoader {
+	d := &DirLoader{}
+	d.Extensions = append(d.Extensions, ".html", ".jingo")
+	for _, p := range basepaths {
+		p, err := filepath.Abs(path.Clean(p))
+		if err != nil {
+			d.e = append(d.e, Errf("path: %s returned error", p))
+		}
+		d.Paths = append(d.Paths, p)
+	}
+	return d
 }
 
 func (l *DirLoader) Load(name string) (string, error) {
@@ -49,31 +73,9 @@ func (l *DirLoader) Load(name string) (string, error) {
 	return "", Errf("Template %s does not exist", name)
 }
 
-func (l *DirLoader) ListTemplates() interface{} {
-	return nil
-}
-
-func NewDirLoader(basepaths ...string) *DirLoader {
-	d := &DirLoader{}
-	d.Extensions = append(d.Extensions, ".html", ".jingo")
-	for _, p := range basepaths {
-		p, err := filepath.Abs(path.Clean(p))
-		if err != nil {
-			d.e = append(d.e, Errf("path returned error", p))
-		}
-		d.Paths = append(d.Paths, p)
-	}
-	return d
-}
-
-type MapLoader struct {
-	BaseLoader
-	m *map[string]string
-}
-
 func (l *MapLoader) Load(name string) (string, error) {
-	if src, ok := (*l.m)[name]; ok {
-		return src, nil
+	if r, ok := (*l.m)[name]; ok {
+		return string(r), nil
 	}
 	return "", Errf("Template %s does not exist", name)
 }
