@@ -3,7 +3,6 @@ package jingo
 import (
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -50,7 +49,7 @@ func NewDirLoader(basepaths ...string) *DirLoader {
 	d := &DirLoader{}
 	d.FileExtensions = append(d.FileExtensions, ".html", ".jingo")
 	for _, p := range basepaths {
-		p, err := filepath.Abs(path.Clean(p))
+		p, err := filepath.Abs(filepath.Clean(p))
 		if err != nil {
 			d.e = append(d.e, Errf("path: %s returned error", p))
 		}
