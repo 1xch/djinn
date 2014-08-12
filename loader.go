@@ -14,8 +14,8 @@ type (
 	}
 
 	BaseLoader struct {
-		e          []error
-		Extensions []string
+		e              []error
+		FileExtensions []string
 	}
 
 	DirLoader struct {
@@ -38,7 +38,7 @@ func (b *BaseLoader) ListTemplates() interface{} {
 }
 
 func (b *BaseLoader) ValidExtension(ext string) bool {
-	for _, extension := range b.Extensions {
+	for _, extension := range b.FileExtensions {
 		if extension == ext {
 			return true
 		}
@@ -48,7 +48,7 @@ func (b *BaseLoader) ValidExtension(ext string) bool {
 
 func NewDirLoader(basepaths ...string) *DirLoader {
 	d := &DirLoader{}
-	d.Extensions = append(d.Extensions, ".html", ".jingo")
+	d.FileExtensions = append(d.FileExtensions, ".html", ".jingo")
 	for _, p := range basepaths {
 		p, err := filepath.Abs(path.Clean(p))
 		if err != nil {
