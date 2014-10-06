@@ -1,4 +1,4 @@
-#Jingo
+#Djinn
 html templating tools in Go using standard library html/template. Templates are
 used as html/template templates in syntax, and are actual \*template.Template instances
 
