@@ -1,4 +1,4 @@
-package jingo
+package djinn
 
 import (
 	"bytes"
