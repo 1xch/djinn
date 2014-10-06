@@ -1,4 +1,4 @@
-package jingo
+package djinn
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	Jingo struct {
+	Djinn struct {
 		Loaders []TemplateLoader
 		FuncMap map[string]interface{}
 		cache   *TLRUCache
@@ -28,22 +28,22 @@ var (
 )
 
 // A blank instance with a default cache
-func NewJingo() *Jingo {
-	j := &Jingo{}
+func New() *Djinn {
+	j := &Djinn{}
 	j.Loaders = make([]TemplateLoader, 0)
 	j.FuncMap = make(map[string]interface{})
 	j.cache = NewTLRUCache(50)
 	return j
 }
 
-func (j *Jingo) AddLoaders(loaders ...TemplateLoader) {
+func (j *Djinn) AddLoaders(loaders ...TemplateLoader) {
 	for _, l := range loaders {
 		j.Loaders = append(j.Loaders, l)
 	}
 	return
 }
 
-func (j *Jingo) Render(w io.Writer, name string, data interface{}) error {
+func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	if tmpl, ok := j.cache.Get(name); ok {
 		err = tmpl.Execute(w, data)
 	} else {
@@ -64,7 +64,7 @@ func (j *Jingo) Render(w io.Writer, name string, data interface{}) error {
 	return nil
 }
 
-func (j *Jingo) FetchTemplate(w io.Writer, name string) (*template.Template, error) {
+func (j *Djinn) FetchTemplate(w io.Writer, name string) (*template.Template, error) {
 	if tmpl, ok := j.cache.Get(name); ok {
 		return tmpl, nil
 	} else {
@@ -72,7 +72,7 @@ func (j *Jingo) FetchTemplate(w io.Writer, name string) (*template.Template, err
 	}
 }
 
-func (j *Jingo) getTemplate(name string) (string, error) {
+func (j *Djinn) getTemplate(name string) (string, error) {
 	for _, l := range j.Loaders {
 		t, err := l.Load(name)
 		if err == nil {
@@ -82,7 +82,7 @@ func (j *Jingo) getTemplate(name string) (string, error) {
 	return "", Errf("Template %s does not exist", name)
 }
 
-func (j *Jingo) add(stack *[]*Node, name string) error {
+func (j *Djinn) add(stack *[]*Node, name string) error {
 	tplSrc, err := j.getTemplate(name)
 
 	if err != nil {
@@ -112,7 +112,7 @@ func (j *Jingo) add(stack *[]*Node, name string) error {
 	return nil
 }
 
-func (j *Jingo) assemble(name string) (*template.Template, error) {
+func (j *Djinn) assemble(name string) (*template.Template, error) {
 	stack := []*Node{}
 
 	err := j.add(&stack, name)
