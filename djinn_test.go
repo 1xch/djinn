@@ -1,4 +1,4 @@
-package jingo
+package djinn
 
 import (
 	"bytes"
@@ -22,9 +22,9 @@ func MustContain(t *testing.T, str *string, check string) {
 	*str = (*str)[index:]
 }
 
-func TplRun(t *testing.T, j *Jingo, name string, data interface{}, check ...string) {
+func TplRun(t *testing.T, d *Djinn, name string, data interface{}, check ...string) {
 	w := &bytes.Buffer{}
-	err := j.Render(w, name, data)
+	err := d.Render(w, name, data)
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
@@ -32,7 +32,7 @@ func TplRun(t *testing.T, j *Jingo, name string, data interface{}, check ...stri
 	}
 
 	//from cache
-	j.Render(w, name, data)
+	d.Render(w, name, data)
 
 	str := w.String()
 	fmt.Println(str)
@@ -45,17 +45,17 @@ func TplRun(t *testing.T, j *Jingo, name string, data interface{}, check ...stri
 
 func TestTemplate(t *testing.T) {
 	m1 := map[string]string{
-		"vars.html":                        `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
-		"Folder/Main-file_name.html.jingo": tplMain,
-		"sub1.html":                        tplSub1,
-		"sub2.html":                        tplSub2,
+		"vars.html":                      `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
+		"Folder/Main-file_name.html.dji": tplMain,
+		"sub1.html":                      tplSub1,
+		"sub2.html":                      tplSub2,
 	}
 
 	m2 := map[string]string{
-		"varsa.html":                        `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
-		"Folder/Main-file_namea.html.jingo": tplMain,
-		"sub1a.html":                        tplSub1,
-		"sub2a.html":                        tplSub2a,
+		"varsa.html":                      `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
+		"Folder/Main-file_namea.html.dji": tplMain,
+		"sub1a.html":                      tplSub1,
+		"sub2a.html":                      tplSub2a,
 	}
 
 	loader1 := &MapLoader{m: &m1}
@@ -66,13 +66,13 @@ func TestTemplate(t *testing.T) {
 
 	loader4 := NewDirLoader("./test/additional/templates")
 
-	j1 := NewJingo()
+	j1 := New()
 	j1.AddLoaders(loader1, loader2)
 
-	j2 := NewJingo()
+	j2 := New()
 	j2.AddLoaders(loader3, loader4)
 
-	j3 := NewJingo()
+	j3 := New()
 	j3.AddLoaders(loader1, loader4)
 
 	data := &TemplateData{
@@ -91,13 +91,13 @@ func TestTemplate(t *testing.T) {
 		},
 	}
 
-	jingoes := []*Jingo{
+	djinni := []*Djinn{
 		j1,
 		j2,
 		j3,
 	}
 
-	for _, j := range jingoes {
+	for _, j := range djinni {
 		TplRun(t, j, "vars.html", data, "<title>Hello World</title>", "Key=Value")
 		TplRun(t, j, "sub2.html", data, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
 		TplRun(t, j, "sub1.html", data, "<MAIN>", "<SUB1>", "</SUB1>", "</MAIN>")
@@ -111,7 +111,7 @@ var tplMain string = `<MAIN>
 {{ template "body" }}
 </MAIN>`
 
-var tplSub1 string = `{{ extends "Folder/Main-file_name.html.jingo" }}
+var tplSub1 string = `{{ extends "Folder/Main-file_name.html.dji" }}
 {{ define "body" }}
 <SUB1>
 

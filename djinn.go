@@ -1,4 +1,4 @@
-package jingo
+package djinn
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	Jingo struct {
+	Djinn struct {
 		Loaders []TemplateLoader
 		FuncMap map[string]interface{}
 		cache   *TLRUCache
@@ -28,26 +28,26 @@ var (
 )
 
 // A blank instance with a default cache
-func NewJingo() *Jingo {
-	j := &Jingo{}
-	j.Loaders = make([]TemplateLoader, 0)
-	j.FuncMap = make(map[string]interface{})
-	j.cache = NewTLRUCache(50)
-	return j
+func New() *Djinn {
+	d := &Djinn{}
+	d.Loaders = make([]TemplateLoader, 0)
+	d.FuncMap = make(map[string]interface{})
+	d.cache = NewTLRUCache(50)
+	return d
 }
 
-func (j *Jingo) AddLoaders(loaders ...TemplateLoader) {
+func (d *Djinn) AddLoaders(loaders ...TemplateLoader) {
 	for _, l := range loaders {
-		j.Loaders = append(j.Loaders, l)
+		d.Loaders = append(d.Loaders, l)
 	}
 	return
 }
 
-func (j *Jingo) Render(w io.Writer, name string, data interface{}) error {
-	if tmpl, ok := j.cache.Get(name); ok {
+func (d *Djinn) Render(w io.Writer, name string, data interface{}) error {
+	if tmpl, ok := d.cache.Get(name); ok {
 		err = tmpl.Execute(w, data)
 	} else {
-		tmpl, err := j.assemble(name)
+		tmpl, err := d.assemble(name)
 		if err != nil {
 			return err
 		}
@@ -64,16 +64,16 @@ func (j *Jingo) Render(w io.Writer, name string, data interface{}) error {
 	return nil
 }
 
-func (j *Jingo) FetchTemplate(w io.Writer, name string) (*template.Template, error) {
-	if tmpl, ok := j.cache.Get(name); ok {
+func (d *Djinn) FetchTemplate(w io.Writer, name string) (*template.Template, error) {
+	if tmpl, ok := d.cache.Get(name); ok {
 		return tmpl, nil
 	} else {
-		return j.assemble(name)
+		return d.assemble(name)
 	}
 }
 
-func (j *Jingo) getTemplate(name string) (string, error) {
-	for _, l := range j.Loaders {
+func (d *Djinn) get(name string) (string, error) {
+	for _, l := range d.Loaders {
 		t, err := l.Load(name)
 		if err == nil {
 			return t, nil
@@ -82,8 +82,8 @@ func (j *Jingo) getTemplate(name string) (string, error) {
 	return "", Errf("Template %s does not exist", name)
 }
 
-func (j *Jingo) add(stack *[]*Node, name string) error {
-	tplSrc, err := j.getTemplate(name)
+func (d *Djinn) add(stack *[]*Node, name string) error {
+	tplSrc, err := d.get(name)
 
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (j *Jingo) add(stack *[]*Node, name string) error {
 
 	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
 	if len(extendsMatches) == 2 {
-		err := j.add(stack, extendsMatches[1])
+		err := d.add(stack, extendsMatches[1])
 		if err != nil {
 			return err
 		}
@@ -112,10 +112,10 @@ func (j *Jingo) add(stack *[]*Node, name string) error {
 	return nil
 }
 
-func (j *Jingo) assemble(name string) (*template.Template, error) {
+func (d *Djinn) assemble(name string) (*template.Template, error) {
 	stack := []*Node{}
 
-	err := j.add(&stack, name)
+	err := d.add(&stack, name)
 
 	if err != nil {
 		return nil, err
@@ -163,7 +163,7 @@ func (j *Jingo) assemble(name string) (*template.Template, error) {
 			thisTemplate = rootTemplate.New(node.Name)
 		}
 
-		thisTemplate.Funcs(j.FuncMap)
+		thisTemplate.Funcs(d.FuncMap)
 
 		_, err := thisTemplate.Parse(node.Src)
 		if err != nil {
@@ -171,7 +171,7 @@ func (j *Jingo) assemble(name string) (*template.Template, error) {
 		}
 	}
 
-	j.cache.Add(name, rootTemplate)
+	d.cache.Add(name, rootTemplate)
 
 	return rootTemplate, nil
 }

@@ -1,4 +1,4 @@
-package jingo
+package djinn
 
 import (
 	"io/ioutil"
@@ -47,7 +47,7 @@ func (b *BaseLoader) ValidExtension(ext string) bool {
 
 func NewDirLoader(basepaths ...string) *DirLoader {
 	d := &DirLoader{}
-	d.FileExtensions = append(d.FileExtensions, ".html", ".jingo")
+	d.FileExtensions = append(d.FileExtensions, ".html", ".dji")
 	for _, p := range basepaths {
 		p, err := filepath.Abs(filepath.Clean(p))
 		if err != nil {
