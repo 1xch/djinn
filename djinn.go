@@ -36,12 +36,7 @@ func New() *Djinn {
 	return d
 }
 
-func (d *Djinn) AddLoaders(loaders ...TemplateLoader) {
-	for _, l := range loaders {
-		d.Loaders = append(d.Loaders, l)
-	}
-	return
-}
+func (d *Djinn) AddLoaders(loaders ...TemplateLoader) {}
 
 func (d *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	if tmpl, ok := d.cache.Get(name); ok {

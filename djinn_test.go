@@ -22,7 +22,7 @@ func MustContain(t *testing.T, str *string, check string) {
 	*str = (*str)[index:]
 }
 
-func TplRun(t *testing.T, d *Djinn, name string, data interface{}, check ...string) {
+func TplRun(t *testing.T, j *Djinn, name string, data interface{}, check ...string) {
 	w := &bytes.Buffer{}
 	err := d.Render(w, name, data)
 	if err != nil {
@@ -32,7 +32,7 @@ func TplRun(t *testing.T, d *Djinn, name string, data interface{}, check ...stri
 	}
 
 	//from cache
-	d.Render(w, name, data)
+	j.Render(w, name, data)
 
 	str := w.String()
 	fmt.Println(str)
@@ -91,13 +91,13 @@ func TestTemplate(t *testing.T) {
 		},
 	}
 
-	djinni := []*Djinn{
+	js := []*Djinn{
 		j1,
 		j2,
 		j3,
 	}
 
-	for _, j := range djinni {
+	for _, j := range js {
 		TplRun(t, j, "vars.html", data, "<title>Hello World</title>", "Key=Value")
 		TplRun(t, j, "sub2.html", data, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
 		TplRun(t, j, "sub1.html", data, "<MAIN>", "<SUB1>", "</SUB1>", "</MAIN>")
