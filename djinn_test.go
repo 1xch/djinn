@@ -24,7 +24,7 @@ func MustContain(t *testing.T, str *string, check string) {
 
 func TplRun(t *testing.T, j *Djinn, name string, data interface{}, check ...string) {
 	w := &bytes.Buffer{}
-	err := d.Render(w, name, data)
+	err := j.Render(w, name, data)
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
