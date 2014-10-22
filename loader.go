@@ -24,7 +24,7 @@ type (
 
 	MapLoader struct {
 		BaseLoader
-		m *map[string]string
+		m map[string]string
 	}
 )
 
@@ -51,7 +51,7 @@ func NewDirLoader(basepaths ...string) *DirLoader {
 	for _, p := range basepaths {
 		p, err := filepath.Abs(filepath.Clean(p))
 		if err != nil {
-			d.e = append(d.e, Errf("path: %s returned error", p))
+			d.e = append(d.e, DjinnError("path: %s returned error", p))
 		}
 		d.Paths = append(d.Paths, p)
 	}
@@ -69,12 +69,20 @@ func (l *DirLoader) Load(name string) (string, error) {
 			}
 		}
 	}
-	return "", Errf("Template %s does not exist", name)
+	return "", DjinnError("Template %s does not exist", name)
 }
 
 func (l *MapLoader) Load(name string) (string, error) {
-	if r, ok := (*l.m)[name]; ok {
+	if r, ok := l.m[name]; ok {
 		return string(r), nil
 	}
-	return "", Errf("Template %s does not exist", name)
+	return "", DjinnError("Template %s does not exist", name)
+}
+
+func (l *MapLoader) ListTemplates() interface{} {
+	var listed []string
+	for k, _ := range l.m {
+		listed = append(listed, k)
+	}
+	return listed
 }

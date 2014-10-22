@@ -69,52 +69,14 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	return nil
 }
 
-func (j *Djinn) FetchTemplate(w io.Writer, name string) (*template.Template, error) {
+// It's happening. Given a string name, Fetch attempts to return a
+// *template.Template or returns an error.
+func (j *Djinn) Fetch(name string) (*template.Template, error) {
 	if tmpl, ok := j.Cache.Get(name); ok {
 		return tmpl, nil
 	} else {
 		return j.assemble(name)
 	}
-}
-
-func (j *Djinn) getTemplate(name string) (string, error) {
-	for _, l := range j.Loaders {
-		t, err := l.Load(name)
-		if err == nil {
-			return t, nil
-		}
-	}
-	return "", DjinnError("Template %s does not exist", name)
-}
-
-func (j *Djinn) add(stack *[]*Node, name string) error {
-	tplSrc, err := j.getTemplate(name)
-
-	if err != nil {
-		return err
-	}
-
-	if len(tplSrc) < 1 {
-		return DjinnError("Empty Template named %s", name)
-	}
-
-	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
-	if len(extendsMatches) == 2 {
-		err := j.add(stack, extendsMatches[1])
-		if err != nil {
-			return err
-		}
-		tplSrc = re_extends.ReplaceAllString(tplSrc, "")
-	}
-
-	node := &Node{
-		Name: name,
-		Src:  tplSrc,
-	}
-
-	*stack = append((*stack), node)
-
-	return nil
 }
 
 func (j *Djinn) assemble(name string) (*template.Template, error) {
@@ -179,4 +141,44 @@ func (j *Djinn) assemble(name string) (*template.Template, error) {
 	j.Cache.Add(name, rootTemplate)
 
 	return rootTemplate, nil
+}
+
+func (j *Djinn) add(stack *[]*Node, name string) error {
+	tplSrc, err := j.getTemplate(name)
+
+	if err != nil {
+		return err
+	}
+
+	if len(tplSrc) < 1 {
+		return DjinnError("Empty Template named %s", name)
+	}
+
+	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
+	if len(extendsMatches) == 2 {
+		err := j.add(stack, extendsMatches[1])
+		if err != nil {
+			return err
+		}
+		tplSrc = re_extends.ReplaceAllString(tplSrc, "")
+	}
+
+	node := &Node{
+		Name: name,
+		Src:  tplSrc,
+	}
+
+	*stack = append((*stack), node)
+
+	return nil
+}
+
+func (j *Djinn) getTemplate(name string) (string, error) {
+	for _, l := range j.Loaders {
+		t, err := l.Load(name)
+		if err == nil {
+			return t, nil
+		}
+	}
+	return "", DjinnError("Template %s does not exist", name)
 }
