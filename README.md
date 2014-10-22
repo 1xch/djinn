@@ -11,4 +11,4 @@ install:
     go get github.com/thrisp/djinn
 
 
-[http://thrisp.github.com/djinn](http://thrisp.github.com/djinn)
+[http://thrisp.github.io/djinn](http://thrisp.github.io/djinn)

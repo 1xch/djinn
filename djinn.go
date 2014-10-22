@@ -57,12 +57,11 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	}
 
 	tmpl, err := j.assemble(name)
-	if err != nil {
-		return err
-	}
+
 	if tmpl == nil {
 		return DjinnError("Nil template named %s", name)
 	}
+
 	err = tmpl.Execute(w, data)
 
 	if err != nil {
@@ -72,8 +71,8 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	return nil
 }
 
-// It's happening. Given a string name, Fetch attempts to get a
-// *template.Template or returns an error.
+// Given a string name, Fetch attempts to get a *template.Template or returns
+// an error.
 func (j *Djinn) Fetch(name string) (*template.Template, error) {
 	if j.cacheon {
 		if tmpl, ok := j.Cache.Get(name); ok {
