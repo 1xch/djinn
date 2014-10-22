@@ -12,6 +12,7 @@ type (
 		Loaders []TemplateLoader
 		FuncMap map[string]interface{}
 		Cache
+		*conf
 	}
 
 	Node struct {
@@ -27,40 +28,42 @@ var (
 	err            error
 )
 
+// Empty returns an empty Djinn with no configuration.
 func Empty() *Djinn {
-	return &Djinn{}
+	return &Djinn{
+		Loaders: make([]TemplateLoader, 0),
+		FuncMap: make(map[string]interface{}),
+	}
 }
 
-// A blank instance with a default Loaders & FuncMap maps made but empty,
-// and a TLRUCache.
-func New() *Djinn {
+// New provides a Djinn with default configuration.
+func New(opts ...Conf) *Djinn {
 	j := Empty()
-	j.Loaders = make([]TemplateLoader, 0)
-	j.FuncMap = make(map[string]interface{})
-	j.Cache = NewTLRUCache(50)
+	j.conf = defaultconf()
+	opts = append(opts, CacheOn(NewTLRUCache(50)))
+	j.SetConf(opts...)
 	return j
 }
 
-func (j *Djinn) AddLoaders(loaders ...TemplateLoader) {
-	for _, l := range loaders {
-		j.Loaders = append(j.Loaders, l)
-	}
-	return
-}
-
+// Render excutes the template specified by name, with the supplied writer and
+// data. Template is searched for in the cache, if enabled, then from assembling
+// the from the Djinn loaders. Returns any errors ocurring during these steps.
 func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
-	if tmpl, ok := j.Cache.Get(name); ok {
-		err = tmpl.Execute(w, data)
-	} else {
-		tmpl, err := j.assemble(name)
-		if err != nil {
-			return err
+	if j.cacheon {
+		if tmpl, ok := j.Cache.Get(name); ok {
+			err = tmpl.Execute(w, data)
+			return nil
 		}
-		if tmpl == nil {
-			return DjinnError("Nil template named %s", name)
-		}
-		err = tmpl.Execute(w, data)
 	}
+
+	tmpl, err := j.assemble(name)
+	if err != nil {
+		return err
+	}
+	if tmpl == nil {
+		return DjinnError("Nil template named %s", name)
+	}
+	err = tmpl.Execute(w, data)
 
 	if err != nil {
 		return err
@@ -69,14 +72,15 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	return nil
 }
 
-// It's happening. Given a string name, Fetch attempts to return a
+// It's happening. Given a string name, Fetch attempts to get a
 // *template.Template or returns an error.
 func (j *Djinn) Fetch(name string) (*template.Template, error) {
-	if tmpl, ok := j.Cache.Get(name); ok {
-		return tmpl, nil
-	} else {
-		return j.assemble(name)
+	if j.cacheon {
+		if tmpl, ok := j.Cache.Get(name); ok {
+			return tmpl, nil
+		}
 	}
+	return j.assemble(name)
 }
 
 func (j *Djinn) assemble(name string) (*template.Template, error) {
@@ -138,7 +142,9 @@ func (j *Djinn) assemble(name string) (*template.Template, error) {
 		}
 	}
 
-	j.Cache.Add(name, rootTemplate)
+	if j.cacheon {
+		j.Cache.Add(name, rootTemplate)
+	}
 
 	return rootTemplate, nil
 }

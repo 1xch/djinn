@@ -66,14 +66,11 @@ func TestTemplate(t *testing.T) {
 
 	loader4 := NewDirLoader("./test/additional/templates")
 
-	j1 := New()
-	j1.AddLoaders(loader1, loader2)
+	j1 := New(Loaders(loader1, loader2))
 
-	j2 := New()
-	j2.AddLoaders(loader3, loader4)
+	j2 := New(Loaders(loader3, loader4))
 
-	j3 := New()
-	j3.AddLoaders(loader1, loader4)
+	j3 := New(Loaders(loader1, loader4))
 
 	data := &TemplateData{
 		Title: "Hello World",
