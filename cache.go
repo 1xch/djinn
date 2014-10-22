@@ -8,6 +8,13 @@ import (
 )
 
 type (
+	Cache interface {
+		Add(string, *template.Template)
+		Get(string) (*template.Template, bool)
+		Remove(string)
+		Clear()
+	}
+
 	entry struct {
 		key           string
 		t             *template.Template
@@ -44,7 +51,7 @@ func (c *TLRUCache) Add(key string, tmpl *template.Template) {
 	c.RUnlock()
 	c.addNew(key, tmpl)
 	if c.MaxEntries != 0 && c.list.Len() > c.MaxEntries {
-		c.RemoveOldest()
+		c.removeOldest()
 	}
 }
 
@@ -80,7 +87,7 @@ func (c *TLRUCache) Clear() {
 	c.Unlock()
 }
 
-func (c *TLRUCache) RemoveOldest() {
+func (c *TLRUCache) removeOldest() {
 	c.Lock()
 	if c.cache == nil {
 		return

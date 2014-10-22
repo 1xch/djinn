@@ -11,7 +11,7 @@ type (
 	Djinn struct {
 		Loaders []TemplateLoader
 		FuncMap map[string]interface{}
-		cache   *TLRUCache
+		Cache
 	}
 
 	Node struct {
@@ -27,12 +27,17 @@ var (
 	err            error
 )
 
-// A blank instance with a default cache
+func Empty() *Djinn {
+	return &Djinn{}
+}
+
+// A blank instance with a default Loaders & FuncMap maps made but empty,
+// and a TLRUCache.
 func New() *Djinn {
-	j := &Djinn{}
+	j := Empty()
 	j.Loaders = make([]TemplateLoader, 0)
 	j.FuncMap = make(map[string]interface{})
-	j.cache = NewTLRUCache(50)
+	j.Cache = NewTLRUCache(50)
 	return j
 }
 
@@ -44,7 +49,7 @@ func (j *Djinn) AddLoaders(loaders ...TemplateLoader) {
 }
 
 func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
-	if tmpl, ok := j.cache.Get(name); ok {
+	if tmpl, ok := j.Cache.Get(name); ok {
 		err = tmpl.Execute(w, data)
 	} else {
 		tmpl, err := j.assemble(name)
@@ -65,7 +70,7 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 }
 
 func (j *Djinn) FetchTemplate(w io.Writer, name string) (*template.Template, error) {
-	if tmpl, ok := j.cache.Get(name); ok {
+	if tmpl, ok := j.Cache.Get(name); ok {
 		return tmpl, nil
 	} else {
 		return j.assemble(name)
@@ -171,7 +176,7 @@ func (j *Djinn) assemble(name string) (*template.Template, error) {
 		}
 	}
 
-	j.cache.Add(name, rootTemplate)
+	j.Cache.Add(name, rootTemplate)
 
 	return rootTemplate, nil
 }
