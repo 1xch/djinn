@@ -60,6 +60,8 @@ func TestTemplate(t *testing.T) {
 
 	loader1 := &MapLoader{m: m1}
 
+	fmt.Printf("%+v\n", loader1.ListTemplates())
+
 	loader2 := &MapLoader{m: m2}
 
 	loader3 := NewDirLoader("./test/templates")
