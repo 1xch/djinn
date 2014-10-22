@@ -57,7 +57,7 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 			return err
 		}
 		if tmpl == nil {
-			return Errf("Nil template named %s", name)
+			return DjinnError("Nil template named %s", name)
 		}
 		err = tmpl.Execute(w, data)
 	}
@@ -84,7 +84,7 @@ func (j *Djinn) getTemplate(name string) (string, error) {
 			return t, nil
 		}
 	}
-	return "", Errf("Template %s does not exist", name)
+	return "", DjinnError("Template %s does not exist", name)
 }
 
 func (j *Djinn) add(stack *[]*Node, name string) error {
@@ -95,7 +95,7 @@ func (j *Djinn) add(stack *[]*Node, name string) error {
 	}
 
 	if len(tplSrc) < 1 {
-		return Errf("Empty Template named %s", name)
+		return DjinnError("Empty Template named %s", name)
 	}
 
 	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
