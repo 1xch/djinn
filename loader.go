@@ -24,7 +24,7 @@ type (
 
 	MapLoader struct {
 		BaseLoader
-		m map[string]string
+		TemplateMap map[string]string
 	}
 )
 
@@ -72,17 +72,31 @@ func (l *DirLoader) Load(name string) (string, error) {
 	return "", DjinnError("Template %s does not exist", name)
 }
 
+func (l *DirLoader) ListTemplates() interface{} {
+	var listing []string
+	for _, p := range l.Paths {
+		filepath.Walk(p, func(path string, _ os.FileInfo, _ error) (err error) {
+			tem := filepath.Base(path)
+			if l.ValidExtension(filepath.Ext(tem)) {
+				listing = append(listing, tem)
+			}
+			return err
+		})
+	}
+	return listing
+}
+
 func (l *MapLoader) Load(name string) (string, error) {
-	if r, ok := l.m[name]; ok {
+	if r, ok := l.TemplateMap[name]; ok {
 		return string(r), nil
 	}
 	return "", DjinnError("Template %s does not exist", name)
 }
 
 func (l *MapLoader) ListTemplates() interface{} {
-	var listed []string
-	for k, _ := range l.m {
-		listed = append(listed, k)
+	var listing []string
+	for k, _ := range l.TemplateMap {
+		listing = append(listing, k)
 	}
-	return listed
+	return listing
 }
