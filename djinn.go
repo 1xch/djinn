@@ -51,7 +51,6 @@ func New(opts ...Conf) *Djinn {
 // data. Template is searched for in the cache, if enabled, then from assembling
 // the from the Djinn loaders. Returns any errors ocurring during these steps.
 func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
-	fmt.Printf("%t\n", j.CacheOn)
 	if j.CacheOn {
 		if tmpl, ok := j.Cache.Get(name); ok {
 			return tmpl.Execute(w, data)
@@ -65,7 +64,7 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	}
 
 	if tmpl == nil {
-		return DjinnError("Nil template named %s", name)
+		return DjinnError("nil template named %s", name)
 	}
 
 	return tmpl.Execute(w, data)

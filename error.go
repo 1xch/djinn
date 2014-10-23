@@ -10,7 +10,7 @@ type djinnerror struct {
 }
 
 func (e *djinnerror) Error() string {
-	return fmt.Sprintf("Djinn: %s", fmt.Sprintf(e.Format, e.Parameters...))
+	return fmt.Sprintf(e.Format, e.Parameters...)
 }
 
 func DjinnError(format string, parameters ...interface{}) error {
