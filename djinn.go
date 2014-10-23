@@ -40,7 +40,10 @@ func New(opts ...Conf) *Djinn {
 	j := Empty()
 	j.conf = defaultconf()
 	opts = append(opts, CacheOn(NewTLRUCache(50)))
-	j.SetConf(opts...)
+	err := j.SetConf(opts...)
+	if err != nil {
+		panic(DjinnError("could not configure: %s", err))
+	}
 	return j
 }
 
@@ -48,7 +51,8 @@ func New(opts ...Conf) *Djinn {
 // data. Template is searched for in the cache, if enabled, then from assembling
 // the from the Djinn loaders. Returns any errors ocurring during these steps.
 func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
-	if j.cacheon {
+	fmt.Printf("%t\n", j.CacheOn)
+	if j.CacheOn {
 		if tmpl, ok := j.Cache.Get(name); ok {
 			return tmpl.Execute(w, data)
 		}
@@ -70,7 +74,7 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 // Given a string name, Fetch attempts to get a *template.Template from cache
 // or loaders, returning any error.
 func (j *Djinn) Fetch(name string) (*template.Template, error) {
-	if j.cacheon {
+	if j.CacheOn {
 		if tmpl, ok := j.Cache.Get(name); ok {
 			return tmpl, nil
 		}
@@ -137,7 +141,7 @@ func (j *Djinn) assemble(name string) (*template.Template, error) {
 		}
 	}
 
-	if j.cacheon {
+	if j.CacheOn {
 		j.Cache.Add(name, rootTemplate)
 	}
 

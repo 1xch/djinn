@@ -8,13 +8,13 @@ type (
 	Conf func(*Djinn) error
 
 	conf struct {
-		cacheon bool
+		CacheOn bool
 	}
 )
 
 func defaultconf() *conf {
 	return &conf{
-		cacheon: false,
+		CacheOn: false,
 	}
 }
 
@@ -32,7 +32,7 @@ func (j *Djinn) SetConf(opts ...Conf) error {
 func CacheOn(c Cache) Conf {
 	return func(j *Djinn) error {
 		j.Cache = c
-		return j.SetConfBool("cacheon", true)
+		return j.SetConfBool("CacheOn", true)
 	}
 }
 
