@@ -14,10 +14,11 @@ type (
 
 func defaultconf() *conf {
 	return &conf{
-		cacheon: true,
+		cacheon: false,
 	}
 }
 
+// SetConf takes any number of Conf functions to configure the Djinn.
 func (j *Djinn) SetConf(opts ...Conf) error {
 	for _, opt := range opts {
 		if err := opt(j); err != nil {

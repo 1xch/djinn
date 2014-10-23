@@ -25,7 +25,6 @@ var (
 	re_extends     *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
 	re_defineTag   *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
 	re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
-	err            error
 )
 
 // Empty returns an empty Djinn with no configuration.
@@ -51,28 +50,25 @@ func New(opts ...Conf) *Djinn {
 func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	if j.cacheon {
 		if tmpl, ok := j.Cache.Get(name); ok {
-			err = tmpl.Execute(w, data)
-			return nil
+			return tmpl.Execute(w, data)
 		}
 	}
 
 	tmpl, err := j.assemble(name)
 
-	if tmpl == nil {
-		return DjinnError("Nil template named %s", name)
-	}
-
-	err = tmpl.Execute(w, data)
-
 	if err != nil {
 		return err
 	}
 
-	return nil
+	if tmpl == nil {
+		return DjinnError("Nil template named %s", name)
+	}
+
+	return tmpl.Execute(w, data)
 }
 
-// Given a string name, Fetch attempts to get a *template.Template or returns
-// an error.
+// Given a string name, Fetch attempts to get a *template.Template from cache
+// or loaders, returning any error.
 func (j *Djinn) Fetch(name string) (*template.Template, error) {
 	if j.cacheon {
 		if tmpl, ok := j.Cache.Get(name); ok {
@@ -156,7 +152,7 @@ func (j *Djinn) add(stack *[]*Node, name string) error {
 	}
 
 	if len(tplSrc) < 1 {
-		return DjinnError("Empty Template named %s", name)
+		return DjinnError("empty template named %s", name)
 	}
 
 	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
@@ -185,5 +181,5 @@ func (j *Djinn) getTemplate(name string) (string, error) {
 			return t, nil
 		}
 	}
-	return "", DjinnError("Template %s does not exist", name)
+	return "", DjinnError("template %s does not exist", name)
 }

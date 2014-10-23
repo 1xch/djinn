@@ -58,9 +58,9 @@ func TestTemplate(t *testing.T) {
 		"sub2a.html":                      tplSub2a,
 	}
 
-	loader1 := &MapLoader{TemplateMap: m1}
+	loader1 := NewMapLoader(m1)
 
-	loader2 := &MapLoader{TemplateMap: m2}
+	loader2 := NewMapLoader(m2)
 
 	loader3 := NewDirLoader("./test/templates")
 
