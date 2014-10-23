@@ -50,6 +50,23 @@ func Loaders(loaders ...TemplateLoader) Conf {
 	}
 }
 
+func (j *Djinn) addfunctions(f ...map[string]interface{}) {
+	for _, m := range f {
+		for k, v := range m {
+			j.FuncMap[k] = v
+		}
+	}
+}
+
+// TemplateFunctions is a Conf function adding template functions through any
+// number of string-interface maps.
+func TemplateFunctions(f ...map[string]interface{}) Conf {
+	return func(j *Djinn) error {
+		j.addfunctions(f...)
+		return nil
+	}
+}
+
 func (j *Djinn) elem() reflect.Value {
 	v := reflect.ValueOf(j)
 	return v.Elem()

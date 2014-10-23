@@ -8,6 +8,8 @@ import (
 )
 
 type (
+	// The primary Djinn struct for templates and rendering, containing loaders,
+	// template functions, cache, & configuration.
 	Djinn struct {
 		Loaders []TemplateLoader
 		FuncMap map[string]interface{}
@@ -35,11 +37,11 @@ func Empty() *Djinn {
 	}
 }
 
-// New provides a Djinn with default configuration.
+// New provides a Djinn with default configuration & cache set to on.
 func New(opts ...Conf) *Djinn {
 	j := Empty()
 	j.conf = defaultconf()
-	opts = append(opts, CacheOn(NewTLRUCache(50)))
+	opts = append(opts, CacheOn(NewTLRUCache(100)))
 	err := j.SetConf(opts...)
 	if err != nil {
 		panic(DjinnError("could not configure: %s", err))
@@ -49,7 +51,7 @@ func New(opts ...Conf) *Djinn {
 
 // Render excutes the template specified by name, with the supplied writer and
 // data. Template is searched for in the cache, if enabled, then from assembling
-// the from the Djinn loaders. Returns any errors ocurring during these steps.
+// the from the tempalte Djinn loaders. Returns any ocurring errors.
 func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	if j.CacheOn {
 		if tmpl, ok := j.Cache.Get(name); ok {

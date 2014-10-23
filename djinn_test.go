@@ -24,14 +24,19 @@ func MustContain(t *testing.T, str *string, check string) {
 
 func TplRun(t *testing.T, j *Djinn, name string, data interface{}, check ...string) {
 	w := &bytes.Buffer{}
+
 	err := j.Render(w, name, data)
+
+	// fetch
+	_, err = j.Fetch(name)
+
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 		return
 	}
 
-	//from cache
+	// from cache
 	j.Render(w, name, data)
 
 	str := w.String()
