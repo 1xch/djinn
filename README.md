@@ -1,15 +1,9 @@
 # Djinn
-=======
+
 [![GoDoc](https://godoc.org/github.com/thrisp/djinn?status.png)](https://godoc.org/github.com/thrisp/djinn)
 [![Build Status](https://travis-ci.org/thrisp/djinn.svg?branch=develop)](https://travis-ci.org/thrisp/djinn)
 [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/thrisp/djinn/master/LICENSE)
 
-
-templating tools in Go using standard library html/template.
-
-install:
-
-    go get github.com/thrisp/djinn
-
-
 [http://thrisp.github.io/djinn](http://thrisp.github.io/djinn)
+
+html templating tools with nesting, caching and multiple loaders using the [Go html/template library](http://golang.org/pkg/html/template/)
