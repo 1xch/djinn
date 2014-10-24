@@ -8,10 +8,13 @@ import (
 )
 
 type (
+	// The primary Djinn struct for templates and rendering, containing loaders,
+	// template functions, cache, & configuration.
 	Djinn struct {
 		Loaders []TemplateLoader
 		FuncMap map[string]interface{}
-		cache   *TLRUCache
+		Cache
+		*conf
 	}
 
 	Node struct {
@@ -24,9 +27,9 @@ var (
 	re_extends     *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
 	re_defineTag   *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
 	re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
-	err            error
 )
 
+<<<<<<< HEAD
 // A blank instance with a default cache
 func New() *Djinn {
 	d := &Djinn{}
@@ -39,10 +42,17 @@ func New() *Djinn {
 func (d *Djinn) AddLoaders(loaders ...TemplateLoader) {
 	for _, l := range loaders {
 		d.Loaders = append(d.Loaders, l)
+=======
+// Empty returns an empty Djinn with no configuration.
+func Empty() *Djinn {
+	return &Djinn{
+		Loaders: make([]TemplateLoader, 0),
+		FuncMap: make(map[string]interface{}),
+>>>>>>> develop
 	}
-	return
 }
 
+<<<<<<< HEAD
 func (d *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	if tmpl, ok := d.cache.Get(name); ok {
 		err = tmpl.Execute(w, data)
@@ -69,30 +79,54 @@ func (d *Djinn) FetchTemplate(w io.Writer, name string) (*template.Template, err
 		return tmpl, nil
 	} else {
 		return d.assemble(name)
+=======
+// New provides a Djinn with default configuration & cache set to on.
+func New(opts ...Conf) *Djinn {
+	j := Empty()
+	j.conf = defaultconf()
+	opts = append(opts, CacheOn(NewTLRUCache(100)))
+	err := j.SetConf(opts...)
+	if err != nil {
+		panic(DjinnError("could not configure: %s", err))
+>>>>>>> develop
 	}
+	return j
 }
 
+<<<<<<< HEAD
 func (d *Djinn) get(name string) (string, error) {
 	for _, l := range d.Loaders {
 		t, err := l.Load(name)
 		if err == nil {
 			return t, nil
+=======
+// Render excutes the template specified by name, with the supplied writer and
+// data. Template is searched for in the cache, if enabled, then from assembling
+// the from the tempalte Djinn loaders. Returns any ocurring errors.
+func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
+	if j.CacheOn {
+		if tmpl, ok := j.Cache.Get(name); ok {
+			return tmpl.Execute(w, data)
+>>>>>>> develop
 		}
 	}
-	return "", Errf("Template %s does not exist", name)
-}
 
+<<<<<<< HEAD
 func (d *Djinn) add(stack *[]*Node, name string) error {
 	tplSrc, err := d.get(name)
+=======
+	tmpl, err := j.assemble(name)
+>>>>>>> develop
 
 	if err != nil {
 		return err
 	}
 
-	if len(tplSrc) < 1 {
-		return Errf("Empty Template named %s", name)
+	if tmpl == nil {
+		return DjinnError("nil template named %s", name)
 	}
 
+<<<<<<< HEAD
 	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
 	if len(extendsMatches) == 2 {
 		err := d.add(stack, extendsMatches[1])
@@ -101,15 +135,20 @@ func (d *Djinn) add(stack *[]*Node, name string) error {
 		}
 		tplSrc = re_extends.ReplaceAllString(tplSrc, "")
 	}
+=======
+	return tmpl.Execute(w, data)
+}
+>>>>>>> develop
 
-	node := &Node{
-		Name: name,
-		Src:  tplSrc,
+// Given a string name, Fetch attempts to get a *template.Template from cache
+// or loaders, returning any error.
+func (j *Djinn) Fetch(name string) (*template.Template, error) {
+	if j.CacheOn {
+		if tmpl, ok := j.Cache.Get(name); ok {
+			return tmpl, nil
+		}
 	}
-
-	*stack = append((*stack), node)
-
-	return nil
+	return j.assemble(name)
 }
 
 func (d *Djinn) assemble(name string) (*template.Template, error) {
@@ -171,7 +210,53 @@ func (d *Djinn) assemble(name string) (*template.Template, error) {
 		}
 	}
 
+<<<<<<< HEAD
 	d.cache.Add(name, rootTemplate)
+=======
+	if j.CacheOn {
+		j.Cache.Add(name, rootTemplate)
+	}
+>>>>>>> develop
 
 	return rootTemplate, nil
+}
+
+func (j *Djinn) add(stack *[]*Node, name string) error {
+	tplSrc, err := j.getTemplate(name)
+
+	if err != nil {
+		return err
+	}
+
+	if len(tplSrc) < 1 {
+		return DjinnError("empty template named %s", name)
+	}
+
+	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
+	if len(extendsMatches) == 2 {
+		err := j.add(stack, extendsMatches[1])
+		if err != nil {
+			return err
+		}
+		tplSrc = re_extends.ReplaceAllString(tplSrc, "")
+	}
+
+	node := &Node{
+		Name: name,
+		Src:  tplSrc,
+	}
+
+	*stack = append((*stack), node)
+
+	return nil
+}
+
+func (j *Djinn) getTemplate(name string) (string, error) {
+	for _, l := range j.Loaders {
+		t, err := l.Load(name)
+		if err == nil {
+			return t, nil
+		}
+	}
+	return "", DjinnError("template %s does not exist", name)
 }

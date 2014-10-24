@@ -4,17 +4,17 @@ import (
 	"fmt"
 )
 
-type TemplateError struct {
+type djinnerror struct {
 	Format     string
 	Parameters []interface{}
 }
 
-func (e *TemplateError) Error() string {
+func (e *djinnerror) Error() string {
 	return fmt.Sprintf(e.Format, e.Parameters...)
 }
 
-func Errf(format string, parameters ...interface{}) error {
-	return &TemplateError{
+func DjinnError(format string, parameters ...interface{}) error {
+	return &djinnerror{
 		Format:     format,
 		Parameters: parameters,
 	}

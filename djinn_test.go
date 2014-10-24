@@ -24,14 +24,19 @@ func MustContain(t *testing.T, str *string, check string) {
 
 func TplRun(t *testing.T, j *Djinn, name string, data interface{}, check ...string) {
 	w := &bytes.Buffer{}
+
 	err := j.Render(w, name, data)
+
+	// fetch
+	_, err = j.Fetch(name)
+
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 		return
 	}
 
-	//from cache
+	// from cache
 	j.Render(w, name, data)
 
 	str := w.String()
@@ -58,22 +63,19 @@ func TestTemplate(t *testing.T) {
 		"sub2a.html":                      tplSub2a,
 	}
 
-	loader1 := &MapLoader{m: &m1}
+	loader1 := NewMapLoader(m1)
 
-	loader2 := &MapLoader{m: &m2}
+	loader2 := NewMapLoader(m2)
 
 	loader3 := NewDirLoader("./test/templates")
 
 	loader4 := NewDirLoader("./test/additional/templates")
 
-	j1 := New()
-	j1.AddLoaders(loader1, loader2)
+	j1 := New(Loaders(loader1, loader2))
 
-	j2 := New()
-	j2.AddLoaders(loader3, loader4)
+	j2 := New(Loaders(loader3, loader4))
 
-	j3 := New()
-	j3.AddLoaders(loader1, loader4)
+	j3 := New(Loaders(loader1, loader4))
 
 	data := &TemplateData{
 		Title: "Hello World",
