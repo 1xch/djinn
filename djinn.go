@@ -29,9 +29,10 @@ var (
 	re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
 )
 
-// Empty returns an empty Djinn with no configuration.
+// Empty returns an empty Djinn with default configuration.
 func Empty() *Djinn {
 	return &Djinn{
+		conf:    defaultconf(),
 		Loaders: make([]TemplateLoader, 0),
 		FuncMap: make(map[string]interface{}),
 	}
@@ -40,7 +41,6 @@ func Empty() *Djinn {
 // New provides a Djinn with default configuration & cache set to on.
 func New(opts ...Conf) *Djinn {
 	j := Empty()
-	j.conf = defaultconf()
 	opts = append(opts, CacheOn(NewTLRUCache(100)))
 	err := j.SetConf(opts...)
 	if err != nil {
