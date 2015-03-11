@@ -2,81 +2,72 @@ package djinn
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 )
+
+var m1 map[string]string = map[string]string{
+	"vars.html":                      `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
+	"Folder/Main-file_name.html.dji": tplMain,
+	"sub1.html":                      tplSub1,
+	"sub2.html":                      tplSub2,
+	"plaintext.html":                 "<Plain>",
+}
+
+var m2 map[string]string = map[string]string{
+	"varsa.html":                      `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
+	"Folder/Main-file_namea.html.dji": tplMain,
+	"sub1a.html":                      tplSub1,
+	"sub2a.html":                      tplSub2a,
+	"plaintext.html":                  "<Plain>",
+}
+
+var Loader1 *MapLoader = NewMapLoader(m1)
+
+var Loader2 *MapLoader = NewMapLoader(m2)
+
+var Loader3 *DirLoader = NewDirLoader("./test/templates")
+
+var Loader4 *DirLoader = NewDirLoader("./test/additional/templates")
+
+var J1 *Djinn = New(Loaders(Loader1, Loader2))
+
+var J2 *Djinn = New(Loaders(Loader3, Loader4))
+
+var J3 *Djinn = New(Loaders(Loader1, Loader4))
 
 type TemplateData struct {
 	Title string
 	Data  map[string]interface{}
 }
 
-func MustContain(t *testing.T, str *string, check string) {
-	index := strings.Index(*str, check)
-	if index < 0 {
-		fmt.Printf("Template did not contain %s\n", check)
-		t.Fail()
-		return
+func MustContain(t *testing.T, str string, check string) {
+	index := strings.Index(str, check)
+	if index == -1 {
+		t.Errorf("Template did not contain %s in the correct order", check)
 	}
-	*str = (*str)[index:]
 }
 
-func TplRun(t *testing.T, j *Djinn, name string, data interface{}, check ...string) {
+func tplRun(t *testing.T, j *Djinn, name string, data interface{}, check ...string) {
 	w := &bytes.Buffer{}
 
 	err := j.Render(w, name, data)
 
 	// fetch
-	_, err = j.Fetch(name)
-
-	if err != nil {
-		fmt.Println(err)
-		t.Fail()
-		return
+	if _, err = j.Fetch(name); err != nil {
+		t.Errorf("Could not fetch %s from %+v", name, j)
 	}
 
 	// from cache
 	j.Render(w, name, data)
 
-	str := w.String()
-	fmt.Println(str)
-
 	for _, c := range check {
-		MustContain(t, &str, c)
+		MustContain(t, w.String(), c)
 	}
 
 }
 
 func TestTemplate(t *testing.T) {
-	m1 := map[string]string{
-		"vars.html":                      `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
-		"Folder/Main-file_name.html.dji": tplMain,
-		"sub1.html":                      tplSub1,
-		"sub2.html":                      tplSub2,
-	}
-
-	m2 := map[string]string{
-		"varsa.html":                      `<title>{{.Title}}</title> Key={{ .Data.Key }}`,
-		"Folder/Main-file_namea.html.dji": tplMain,
-		"sub1a.html":                      tplSub1,
-		"sub2a.html":                      tplSub2a,
-	}
-
-	loader1 := NewMapLoader(m1)
-
-	loader2 := NewMapLoader(m2)
-
-	loader3 := NewDirLoader("./test/templates")
-
-	loader4 := NewDirLoader("./test/additional/templates")
-
-	j1 := New(Loaders(loader1, loader2))
-
-	j2 := New(Loaders(loader3, loader4))
-
-	j3 := New(Loaders(loader1, loader4))
-
 	data := &TemplateData{
 		Title: "Hello World",
 		Data: map[string]interface{}{
@@ -94,23 +85,24 @@ func TestTemplate(t *testing.T) {
 	}
 
 	js := []*Djinn{
-		j1,
-		j2,
-		j3,
+		J1,
+		J2,
+		J3,
 	}
 
 	for _, j := range js {
-		TplRun(t, j, "vars.html", data, "<title>Hello World</title>", "Key=Value")
-		TplRun(t, j, "sub2.html", data, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
-		TplRun(t, j, "sub1.html", data, "<MAIN>", "<SUB1>", "</SUB1>", "</MAIN>")
-		TplRun(t, j, "varsa.html", data1, "<title>Hello World A</title>", "Key=Value A")
-		TplRun(t, j, "sub2a.html", data1, "<MAIN>", "<SUB1>", "<SUB2A>", "</SUB2A>", "</SUB1>", "</MAIN>")
-		TplRun(t, j, "sub1a.html", data1, "<MAIN>", "<SUB1>", "</SUB1>", "</MAIN>")
+		tplRun(t, j, "vars.html", data, "<title>Hello World</title>", "Key=Value")
+		tplRun(t, j, "sub2.html", data, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
+		tplRun(t, j, "sub1.html", data, "<MAIN>", "<SUB1>", "</SUB1>", "<Plain>", "</MAIN>")
+		tplRun(t, j, "varsa.html", data1, "<title>Hello World A</title>", "Key=Value A")
+		tplRun(t, j, "sub2a.html", data1, "<MAIN>", "<SUB1>", "<SUB2A>", "</SUB2A>", "</SUB1>", "</MAIN>")
+		tplRun(t, j, "sub1a.html", data1, "<MAIN>", "<SUB1>", "</SUB1>", "<Plain>", "</MAIN>")
 	}
 }
 
 var tplMain string = `<MAIN>
 {{ template "body" }}
+{{ include "plaintext.html" }}
 </MAIN>`
 
 var tplSub1 string = `{{ extends "Folder/Main-file_name.html.dji" }}
@@ -143,7 +135,6 @@ var tplSub2 string = `
 
 var tplSub2a string = `
 {{ extends 'sub1.html' }}
-
 {{ define "content" }}
 <SUB2A></SUB2A>
 {{ end }}`
