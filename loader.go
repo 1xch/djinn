@@ -6,27 +6,15 @@ import (
 	"path/filepath"
 )
 
-type (
-	TemplateLoader interface {
-		Load(string) (string, error)
-		ListTemplates() interface{}
-	}
+type TemplateLoader interface {
+	Load(string) (string, error)
+	ListTemplates() interface{}
+}
 
-	BaseLoader struct {
-		Errors         []error
-		FileExtensions []string
-	}
-
-	DirLoader struct {
-		BaseLoader
-		Paths []string
-	}
-
-	MapLoader struct {
-		BaseLoader
-		TemplateMap map[string]string
-	}
-)
+type BaseLoader struct {
+	Errors         []error
+	FileExtensions []string
+}
 
 func (b *BaseLoader) Load(name string) (string, error) {
 	return "", DjinnError("load method not implemented")
@@ -45,10 +33,15 @@ func (b *BaseLoader) ValidExtension(ext string) bool {
 	return false
 }
 
-func NewDirLoader(basepaths ...string) *DirLoader {
+type DirLoader struct {
+	BaseLoader
+	Paths []string
+}
+
+func NewDirLoader(paths ...string) *DirLoader {
 	d := &DirLoader{}
 	d.FileExtensions = append(d.FileExtensions, ".html", ".dji")
-	for _, p := range basepaths {
+	for _, p := range paths {
 		p, err := filepath.Abs(filepath.Clean(p))
 		if err != nil {
 			d.Errors = append(d.Errors, DjinnError("path: %s returned error", p))
@@ -84,6 +77,11 @@ func (l *DirLoader) ListTemplates() interface{} {
 		})
 	}
 	return listing
+}
+
+type MapLoader struct {
+	BaseLoader
+	TemplateMap map[string]string
 }
 
 func NewMapLoader(tm ...map[string]string) *MapLoader {

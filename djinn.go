@@ -24,7 +24,8 @@ type (
 )
 
 var (
-	re_extends     *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
+	re_extendsTag  *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
+	re_includeTag  *regexp.Regexp = regexp.MustCompile(`{{ include ["']?([^"]*)["']? }}`)
 	re_defineTag   *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
 	re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
 )
@@ -95,7 +96,22 @@ func (j *Djinn) assemble(name string) (*template.Template, error) {
 	blocks := map[string]string{}
 	blockId := 0
 
-	var rootTemplate *template.Template
+	for _, node := range stack {
+		var errInReplace error = nil
+		node.Src = re_includeTag.ReplaceAllStringFunc(node.Src, func(raw string) string {
+			parsed := re_includeTag.FindStringSubmatch(raw)
+			templatePath := parsed[1]
+			subTpl, err := j.getTemplate(templatePath)
+			if err != nil {
+				errInReplace = err
+				return "[error]"
+			}
+			return subTpl
+		})
+		if errInReplace != nil {
+			return nil, errInReplace
+		}
+	}
 
 	for _, node := range stack {
 		node.Src = re_defineTag.ReplaceAllStringFunc(node.Src, func(raw string) string {
@@ -107,6 +123,8 @@ func (j *Djinn) assemble(name string) (*template.Template, error) {
 			return "{{ define \"" + blockName + "\" }}"
 		})
 	}
+
+	var rootTemplate *template.Template
 
 	for i, node := range stack {
 		node.Src = re_templateTag.ReplaceAllStringFunc(node.Src, func(raw string) string {
@@ -160,13 +178,13 @@ func (j *Djinn) add(stack *[]*Node, name string) error {
 		return DjinnError("empty template named %s", name)
 	}
 
-	extendsMatches := re_extends.FindStringSubmatch(tplSrc)
+	extendsMatches := re_extendsTag.FindStringSubmatch(tplSrc)
 	if len(extendsMatches) == 2 {
 		err := j.add(stack, extendsMatches[1])
 		if err != nil {
 			return err
 		}
-		tplSrc = re_extends.ReplaceAllString(tplSrc, "")
+		tplSrc = re_extendsTag.ReplaceAllString(tplSrc, "")
 	}
 
 	node := &Node{
