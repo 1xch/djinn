@@ -1,5 +1,10 @@
 ## Changelog
 
+### Djinn 0.2.0 (7.10.2015)
+
+- Improved testing
+- A new template directive 'include', to specify a template to be included
+
 ### Djinn 0.1.0 (10.22.2014)
 
 - Configuration functions

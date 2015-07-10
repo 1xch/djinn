@@ -3,8 +3,7 @@ package djinn
 import "reflect"
 
 type (
-	// A configuration function that takes an Djinn pointer, configures the
-	// *Djinn within the function, and returning an error.
+	// A configuration function taking a Djinn pointer.
 	Conf func(*Djinn) error
 
 	conf struct {

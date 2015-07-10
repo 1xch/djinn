@@ -22,19 +22,11 @@ var m2 map[string]string = map[string]string{
 	"plaintext.html":                  "<Plain>",
 }
 
-var Loader1 *MapLoader = NewMapLoader(m1)
+var J1 *Djinn = New(Loaders(NewMapLoader(m1), NewMapLoader(m2)))
 
-var Loader2 *MapLoader = NewMapLoader(m2)
+var J2 *Djinn = New(Loaders(NewDirLoader("./test/templates"), NewDirLoader("./test/additional/templates")))
 
-var Loader3 *DirLoader = NewDirLoader("./test/templates")
-
-var Loader4 *DirLoader = NewDirLoader("./test/additional/templates")
-
-var J1 *Djinn = New(Loaders(Loader1, Loader2))
-
-var J2 *Djinn = New(Loaders(Loader3, Loader4))
-
-var J3 *Djinn = New(Loaders(Loader1, Loader4))
+var J3 *Djinn = New(Loaders(NewMapLoader(m1), NewDirLoader("./test/additional/templates")))
 
 type TemplateData struct {
 	Title string
