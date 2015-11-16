@@ -8,7 +8,7 @@ import (
 
 type TemplateLoader interface {
 	Load(string) (string, error)
-	ListTemplates() interface{}
+	ListTemplates() []string
 }
 
 type BaseLoader struct {
@@ -16,12 +16,14 @@ type BaseLoader struct {
 	FileExtensions []string
 }
 
+var NoLoadMethod = Drror("load method not implemented")
+
 func (b *BaseLoader) Load(name string) (string, error) {
-	return "", DjinnError("load method not implemented")
+	return "", NoLoadMethod
 }
 
-func (b *BaseLoader) ListTemplates() interface{} {
-	return "not implemented"
+func (b *BaseLoader) ListTemplates() []string {
+	return []string{"not implemented"}
 }
 
 func (b *BaseLoader) ValidExtension(ext string) bool {
@@ -38,13 +40,15 @@ type DirLoader struct {
 	Paths []string
 }
 
+var PathError = Drror("path: %s returned error").Out
+
 func NewDirLoader(paths ...string) *DirLoader {
 	d := &DirLoader{}
 	d.FileExtensions = append(d.FileExtensions, ".html", ".dji")
 	for _, p := range paths {
 		p, err := filepath.Abs(filepath.Clean(p))
 		if err != nil {
-			d.Errors = append(d.Errors, DjinnError("path: %s returned error", p))
+			d.Errors = append(d.Errors, PathError(p))
 		}
 		d.Paths = append(d.Paths, p)
 	}
@@ -62,10 +66,10 @@ func (l *DirLoader) Load(name string) (string, error) {
 			}
 		}
 	}
-	return "", DjinnError("template %s does not exist", name)
+	return "", NoTemplateError(name)
 }
 
-func (l *DirLoader) ListTemplates() interface{} {
+func (l *DirLoader) ListTemplates() []string {
 	var listing []string
 	for _, p := range l.Paths {
 		filepath.Walk(p, func(path string, _ os.FileInfo, _ error) (err error) {
@@ -98,10 +102,10 @@ func (l *MapLoader) Load(name string) (string, error) {
 	if r, ok := l.TemplateMap[name]; ok {
 		return string(r), nil
 	}
-	return "", DjinnError("template %s does not exist", name)
+	return "", NoTemplateError(name)
 }
 
-func (l *MapLoader) ListTemplates() interface{} {
+func (l *MapLoader) ListTemplates() []string {
 	var listing []string
 	for k, _ := range l.TemplateMap {
 		listing = append(listing, k)

@@ -4,18 +4,20 @@ import (
 	"fmt"
 )
 
-type djinnerror struct {
-	Format     string
-	Parameters []interface{}
+type djinnError struct {
+	err  string
+	vals []interface{}
 }
 
-func (e *djinnerror) Error() string {
-	return fmt.Sprintf(e.Format, e.Parameters...)
+func (d *djinnError) Error() string {
+	return fmt.Sprintf(d.err, d.vals...)
 }
 
-func DjinnError(format string, parameters ...interface{}) error {
-	return &djinnerror{
-		Format:     format,
-		Parameters: parameters,
-	}
+func (d *djinnError) Out(vals ...interface{}) *djinnError {
+	d.vals = vals
+	return d
+}
+
+func Drror(err string) *djinnError {
+	return &djinnError{err: err}
 }

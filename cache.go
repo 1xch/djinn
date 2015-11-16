@@ -7,27 +7,19 @@ import (
 	"time"
 )
 
-type (
-	Cache interface {
-		Add(string, *template.Template)
-		Get(string) (*template.Template, bool)
-		Remove(string)
-		Clear()
-	}
+type Cache interface {
+	Add(string, *template.Template)
+	Get(string) (*template.Template, bool)
+	Remove(string)
+	Clear()
+}
 
-	entry struct {
-		key           string
-		t             *template.Template
-		time_accessed time.Time
-	}
-
-	TLRUCache struct {
-		sync.RWMutex
-		MaxEntries int
-		list       *list.List
-		cache      map[string]*list.Element
-	}
-)
+type TLRUCache struct {
+	sync.RWMutex
+	MaxEntries int
+	list       *list.List
+	cache      map[string]*list.Element
+}
 
 func NewTLRUCache(maxentries int) *TLRUCache {
 	return &TLRUCache{
@@ -35,6 +27,12 @@ func NewTLRUCache(maxentries int) *TLRUCache {
 		cache:      make(map[string]*list.Element),
 		MaxEntries: maxentries,
 	}
+}
+
+type entry struct {
+	key           string
+	t             *template.Template
+	time_accessed time.Time
 }
 
 func (c *TLRUCache) Add(key string, tmpl *template.Template) {

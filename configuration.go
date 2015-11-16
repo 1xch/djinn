@@ -2,14 +2,14 @@ package djinn
 
 import "reflect"
 
-type (
-	// A configuration function taking a Djinn pointer.
-	Conf func(*Djinn) error
+var ConfigurationError = Drror("Could not configure: %s").Out
 
-	conf struct {
-		CacheOn bool
-	}
-)
+// Any function taking a Djinn pointer for configuration.
+type Conf func(*Djinn) error
+
+type conf struct {
+	CacheOn bool
+}
 
 func defaultconf() *conf {
 	return &conf{
@@ -75,11 +75,13 @@ func (j *Djinn) getfield(fieldname string) reflect.Value {
 	return j.elem().FieldByName(fieldname)
 }
 
+var FieldSetError = Drror("could not set field %s as %t").Out
+
 func (j *Djinn) SetConfBool(fieldname string, as bool) error {
 	f := j.getfield(fieldname)
 	if f.CanSet() {
 		f.SetBool(as)
 		return nil
 	}
-	return DjinnError("could not set field %s as %t", fieldname, as)
+	return FieldSetError(fieldname, as)
 }

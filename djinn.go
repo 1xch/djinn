@@ -7,28 +7,14 @@ import (
 	"regexp"
 )
 
-type (
-	// The primary Djinn struct for templates and rendering, containing loaders,
-	// template functions, cache, & configuration.
-	Djinn struct {
-		Loaders []TemplateLoader
-		FuncMap map[string]interface{}
-		Cache
-		*conf
-	}
-
-	Node struct {
-		Name string
-		Src  string
-	}
-)
-
-var (
-	re_extendsTag  *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
-	re_includeTag  *regexp.Regexp = regexp.MustCompile(`{{ include ["']?([^"]*)["']? }}`)
-	re_defineTag   *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
-	re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
-)
+// The primary srtuct for templates and rendering, containing loaders,
+// template functions, cache, & configuration.
+type Djinn struct {
+	Loaders []TemplateLoader
+	FuncMap map[string]interface{}
+	Cache
+	*conf
+}
 
 // Empty returns an empty Djinn with default configuration.
 func Empty() *Djinn {
@@ -45,10 +31,12 @@ func New(opts ...Conf) *Djinn {
 	opts = append(opts, CacheOn(NewTLRUCache(100)))
 	err := j.SetConf(opts...)
 	if err != nil {
-		panic(DjinnError("could not configure: %s", err))
+		panic(ConfigurationError(err.Error()))
 	}
 	return j
 }
+
+var NilTemplateError = Drror("nil template named %s").Out
 
 // Render excutes the template specified by name, with the supplied writer and
 // data. Template is searched for in the cache, if enabled, then from assembling
@@ -67,7 +55,7 @@ func (j *Djinn) Render(w io.Writer, name string, data interface{}) error {
 	}
 
 	if tmpl == nil {
-		return DjinnError("nil template named %s", name)
+		return NilTemplateError(name)
 	}
 
 	return tmpl.Execute(w, data)
@@ -83,6 +71,18 @@ func (j *Djinn) Fetch(name string) (*template.Template, error) {
 	}
 	return j.assemble(name)
 }
+
+type Node struct {
+	Name string
+	Src  string
+}
+
+var (
+	re_extendsTag  *regexp.Regexp = regexp.MustCompile("{{ extends [\"']?([^'\"}']*)[\"']? }}")
+	re_includeTag  *regexp.Regexp = regexp.MustCompile(`{{ include ["']?([^"]*)["']? }}`)
+	re_defineTag   *regexp.Regexp = regexp.MustCompile("{{ ?define \"([^\"]*)\" ?\"?([a-zA-Z0-9]*)?\"? ?}}")
+	re_templateTag *regexp.Regexp = regexp.MustCompile("{{ ?template \"([^\"]*)\" ?([^ ]*)? ?}}")
+)
 
 func (j *Djinn) assemble(name string) (*template.Template, error) {
 	stack := []*Node{}
@@ -167,6 +167,8 @@ func (j *Djinn) assemble(name string) (*template.Template, error) {
 	return rootTemplate, nil
 }
 
+var EmptyTemplateError = Drror("empty template named %s").Out
+
 func (j *Djinn) add(stack *[]*Node, name string) error {
 	tplSrc, err := j.getTemplate(name)
 
@@ -175,7 +177,7 @@ func (j *Djinn) add(stack *[]*Node, name string) error {
 	}
 
 	if len(tplSrc) < 1 {
-		return DjinnError("empty template named %s", name)
+		return EmptyTemplateError(name)
 	}
 
 	extendsMatches := re_extendsTag.FindStringSubmatch(tplSrc)
@@ -197,6 +199,8 @@ func (j *Djinn) add(stack *[]*Node, name string) error {
 	return nil
 }
 
+var NoTemplateError = Drror("no template named %s").Out
+
 func (j *Djinn) getTemplate(name string) (string, error) {
 	for _, l := range j.Loaders {
 		t, err := l.Load(name)
@@ -204,5 +208,5 @@ func (j *Djinn) getTemplate(name string) (string, error) {
 			return t, nil
 		}
 	}
-	return "", DjinnError("template %s does not exist", name)
+	return "", NoTemplateError(name)
 }
