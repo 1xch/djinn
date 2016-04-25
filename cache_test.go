@@ -18,7 +18,7 @@ var getTests = []struct {
 func TestGet(t *testing.T) {
 	t1, _ := template.New("testing/template/1").Parse(`{{define "T"}}Hello, {{.}}!{{end}}`)
 	for _, tt := range getTests {
-		lru := NewTLRUCache(0)
+		lru := TLRUCache(0)
 		lru.Add(tt.keyToAdd, t1)
 		val, ok := lru.Get(tt.keyToGet)
 		if ok != tt.expectedOk {
@@ -31,7 +31,7 @@ func TestGet(t *testing.T) {
 
 func TestRemove(t *testing.T) {
 	t2, _ := template.New("testing/template/2").Parse(`{{define "T"}}Hello, {{.}}!{{end}}`)
-	lru := NewTLRUCache(0)
+	lru := TLRUCache(0)
 	lru.Add("t2Key", t2)
 	if val, ok := lru.Get("t2Key"); !ok {
 		t.Fatal("TestRemove returned no match")

@@ -22,11 +22,11 @@ var m2 map[string]string = map[string]string{
 	"plaintext.html":                  "<Plain>",
 }
 
-var J1 *Djinn = New(Loaders(NewMapLoader(m1), NewMapLoader(m2)))
+var J1 *Djinn = New(Loaders(MapLoader(m1), MapLoader(m2)))
 
-var J2 *Djinn = New(Loaders(NewDirLoader("./test/templates"), NewDirLoader("./test/additional/templates")))
+var J2 *Djinn = New(Loaders(DirLoader("./test/templates"), DirLoader("./test/additional/templates")))
 
-var J3 *Djinn = New(Loaders(NewMapLoader(m1), NewDirLoader("./test/additional/templates")))
+var J3 *Djinn = New(Loaders(MapLoader(m1), DirLoader("./test/additional/templates")))
 
 type TemplateData struct {
 	Title string
@@ -80,6 +80,13 @@ func TestTemplate(t *testing.T) {
 		J1,
 		J2,
 		J3,
+	}
+
+	for _, cj := range js {
+		err := cj.Configure()
+		if err != nil {
+			t.Errorf("configuration error: %s", err.Error())
+		}
 	}
 
 	for _, j := range js {

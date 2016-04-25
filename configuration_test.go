@@ -2,39 +2,25 @@ package djinn
 
 import "testing"
 
-func confdjinn(cf ...Conf) *Djinn {
-	c := Empty()
-	c.conf = defaultconf()
-	c.SetConf(cf...)
-	return c
-}
-
 func tmplfnc() error {
 	return nil
 }
 
-func TestCacheConfiguration(t *testing.T) {
-	c := confdjinn(CacheOn(NewTLRUCache(1)))
-	if c.Cache == nil || c.CacheOn == false {
-		t.Errorf("CacheOn Conf function not configuring as expected.")
-	}
-}
-
-func TestLoaderConfiguration(t *testing.T) {
+func TestConfigure(t *testing.T) {
 	m := make(map[string]string)
-	m["testing"] = "testing template"
-	c := confdjinn(Loaders(NewMapLoader(m)))
-	_, err := c.Fetch("testing")
-	if err != nil {
-		t.Errorf("Loaders Conf function not configuring as expected.")
+	m["testingTmpl"] = "testing template"
+	mm := make(map[string]interface{})
+	mm["testingFn"] = tmplfnc
+	c := New(CacheOn(TLRUCache(1)), Loaders(MapLoader(m)), TemplateFunctions(mm))
+	c.Configure()
+	if c.Cache == nil || c.cached == false {
+		t.Errorf("Cache configuration not configured as expected.")
 	}
-}
-
-func TestFuncConfiguration(t *testing.T) {
-	m := make(map[string]interface{})
-	m["testing"] = tmplfnc
-	c := confdjinn(TemplateFunctions(m))
-	if _, ok := c.FuncMap["testing"]; !ok {
-		t.Errorf("TemplateFunctions Conf function not configuring as expected.")
+	_, err := c.Fetch("testingTmpl")
+	if err != nil {
+		t.Errorf("Loaders Conf function not configured as expected.")
+	}
+	if _, ok := c.GetFuncs()["testingFn"]; !ok {
+		t.Errorf("TemplateFunctions not configured as expected.")
 	}
 }
