@@ -1,6 +1,6 @@
 ## Changelog
 
-### Djinn 1.0.0 (?.?.?)
+### Djinn 1.0.0 (7.24.2017)
 
 - revised erroring
 - refactor & cleanup
