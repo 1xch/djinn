@@ -2,6 +2,7 @@ package djinn
 
 import (
 	"bytes"
+	"html/template"
 	"strings"
 	"testing"
 )
@@ -22,11 +23,11 @@ var m2 map[string]string = map[string]string{
 	"plaintext.html":                  "<Plain>",
 }
 
-var J1 *Djinn = New(Loaders(NewMapLoader(m1), NewMapLoader(m2)))
+var J1 *Djinn = New(SetLoaders(MapLoader(m1), MapLoader(m2)))
 
-var J2 *Djinn = New(Loaders(NewDirLoader("./test/templates"), NewDirLoader("./test/additional/templates")))
+var J2 *Djinn = New(SetLoaders(DirLoader("./test/templates"), DirLoader("./test/additional/templates")))
 
-var J3 *Djinn = New(Loaders(NewMapLoader(m1), NewDirLoader("./test/additional/templates")))
+var J3 *Djinn = New(SetLoaders(MapLoader(m1), DirLoader("./test/additional/templates")))
 
 type TemplateData struct {
 	Title string
@@ -82,6 +83,13 @@ func TestTemplate(t *testing.T) {
 		J3,
 	}
 
+	for _, cj := range js {
+		err := cj.Configure()
+		if err != nil {
+			t.Errorf("configuration error: %s", err.Error())
+		}
+	}
+
 	for _, j := range js {
 		tplRun(t, j, "vars.html", data, "<title>Hello World</title>", "Key=Value")
 		tplRun(t, j, "sub2.html", data, "<MAIN>", "<SUB1>", "<SUB2>", "</SUB2>", "</SUB1>", "</MAIN>")
@@ -130,3 +138,68 @@ var tplSub2a string = `
 {{ define "content" }}
 <SUB2A></SUB2A>
 {{ end }}`
+
+func tmplfnc() error {
+	return nil
+}
+
+func TestConfigure(t *testing.T) {
+	m := make(map[string]string)
+	m["testingTmpl"] = "testing template"
+	mm := make(map[string]interface{})
+	mm["testingFn"] = tmplfnc
+	c := New(SetCache(TLRUCache(1, true)),
+		SetLoaders(MapLoader(m)),
+		SetTemplateFunctions(mm),
+	)
+	c.Configure()
+	if c.Cache == nil || c.On() == false {
+		t.Errorf("Cache configuration not configured as expected.")
+	}
+	_, err := c.Fetch("testingTmpl")
+	if err != nil {
+		t.Errorf("Loaders Conf function not configured as expected.")
+	}
+	if _, ok := c.GetFuncs()["testingFn"]; !ok {
+		t.Errorf("TemplateFunctions not configured as expected.")
+	}
+}
+
+var getTests = []struct {
+	name       string
+	keyToAdd   string
+	keyToGet   string
+	expectedOk bool
+}{
+	{"hit", "testing/template/1", "testing/template/1", true},
+	{"miss", "testing/template/1", "testing/template/missing", false},
+}
+
+func TestGet(t *testing.T) {
+	t1, _ := template.New("testing/template/1").Parse(`{{define "T"}}Hello, {{.}}!{{end}}`)
+	for _, tt := range getTests {
+		lru := TLRUCache(0, true)
+		lru.Add(tt.keyToAdd, t1)
+		val, ok := lru.Get(tt.keyToGet)
+		if ok != tt.expectedOk {
+			t.Fatalf("%s: cache hit = %v; want %v", tt.name, ok, !ok)
+		} else if ok && val != t1 {
+			t.Fatalf("%s expected get to return template t1 but got %v", tt.name, val)
+		}
+	}
+}
+
+func TestRemove(t *testing.T) {
+	t2, _ := template.New("testing/template/2").Parse(`{{define "T"}}Hello, {{.}}!{{end}}`)
+	lru := TLRUCache(0, true)
+	lru.Add("t2Key", t2)
+	if val, ok := lru.Get("t2Key"); !ok {
+		t.Fatal("TestRemove returned no match")
+	} else if val != t2 {
+		t.Fatalf("TestRemove failed. Expected %d, got %v", t2, val)
+	}
+	lru.Remove("t2Key")
+	if _, ok := lru.Get("t2Key"); ok {
+		t.Fatal("TestRemove returned a removed entry")
+	}
+}

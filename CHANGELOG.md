@@ -1,5 +1,10 @@
 ## Changelog
 
+### Djinn 1.0.0 (7.24.2017)
+
+- revised erroring
+- refactor & cleanup
+
 ### Djinn 0.2.0 (7.10.2015)
 
 - Improved testing

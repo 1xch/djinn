@@ -7,37 +7,42 @@ import (
 	"time"
 )
 
-type (
-	Cache interface {
-		Add(string, *template.Template)
-		Get(string) (*template.Template, bool)
-		Remove(string)
-		Clear()
-	}
+// Cache is an interface to template caching.
+type Cache interface {
+	Add(string, *template.Template)
+	Get(string) (*template.Template, bool)
+	Remove(string)
+	Clear()
+	On() bool
+	SetCaching(bool)
+}
 
-	entry struct {
-		key           string
-		t             *template.Template
-		time_accessed time.Time
-	}
+type tlruCache struct {
+	sync.RWMutex
+	MaxEntries int
+	list       *list.List
+	cache      map[string]*list.Element
+	on         bool
+}
 
-	TLRUCache struct {
-		sync.RWMutex
-		MaxEntries int
-		list       *list.List
-		cache      map[string]*list.Element
-	}
-)
-
-func NewTLRUCache(maxentries int) *TLRUCache {
-	return &TLRUCache{
+// Returns a TLRU cache interface
+func TLRUCache(maxentries int, on bool) *tlruCache {
+	return &tlruCache{
+		MaxEntries: maxentries,
 		list:       list.New(),
 		cache:      make(map[string]*list.Element),
-		MaxEntries: maxentries,
+		on:         on,
 	}
 }
 
-func (c *TLRUCache) Add(key string, tmpl *template.Template) {
+type entry struct {
+	key           string
+	t             *template.Template
+	time_accessed time.Time
+}
+
+// Add will add the provided template with the key to the cache.
+func (c *tlruCache) Add(key string, tmpl *template.Template) {
 	if c.cache == nil {
 		c.cache = make(map[string]*list.Element)
 		c.list = list.New()
@@ -55,7 +60,8 @@ func (c *TLRUCache) Add(key string, tmpl *template.Template) {
 	}
 }
 
-func (c *TLRUCache) Get(key string) (tmpl *template.Template, ok bool) {
+// Get attempts to return a template corresponding to the provided key.
+func (c *tlruCache) Get(key string) (tmpl *template.Template, ok bool) {
 	c.RLock()
 	defer c.RUnlock()
 	if c.cache == nil {
@@ -68,7 +74,8 @@ func (c *TLRUCache) Get(key string) (tmpl *template.Template, ok bool) {
 	return nil, false
 }
 
-func (c *TLRUCache) Remove(key string) {
+// Remove will remove the template from the cache, indicated by the provided key
+func (c *tlruCache) Remove(key string) {
 	c.Lock()
 	if c.cache == nil {
 		return
@@ -79,7 +86,8 @@ func (c *TLRUCache) Remove(key string) {
 	c.Unlock()
 }
 
-func (c *TLRUCache) Clear() {
+// Clear clears all entries from the cache.
+func (c *tlruCache) Clear() {
 	c.Lock()
 	c.list.Init()
 	c.cache = make(map[string]*list.Element)
@@ -87,7 +95,15 @@ func (c *TLRUCache) Clear() {
 	c.Unlock()
 }
 
-func (c *TLRUCache) removeOldest() {
+func (c *tlruCache) On() bool {
+	return c.on
+}
+
+func (c *tlruCache) SetCaching(to bool) {
+	c.on = to
+}
+
+func (c *tlruCache) removeOldest() {
 	c.Lock()
 	if c.cache == nil {
 		return
@@ -99,18 +115,18 @@ func (c *TLRUCache) removeOldest() {
 	c.Unlock()
 }
 
-func (c *TLRUCache) removeElement(e *list.Element) {
+func (c *tlruCache) removeElement(e *list.Element) {
 	c.list.Remove(e)
 	kv := e.Value.(*entry)
 	delete(c.cache, kv.key)
 }
 
-func (c *TLRUCache) moveToFront(element *list.Element) {
+func (c *tlruCache) moveToFront(element *list.Element) {
 	c.list.MoveToFront(element)
 	element.Value.(*entry).time_accessed = time.Now()
 }
 
-func (c *TLRUCache) addNew(key string, tmpl *template.Template) {
+func (c *tlruCache) addNew(key string, tmpl *template.Template) {
 	c.Lock()
 	newEntry := &entry{key, tmpl, time.Now()}
 	element := c.list.PushFront(newEntry)

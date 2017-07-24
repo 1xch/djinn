@@ -1,85 +1,139 @@
 package djinn
 
-import "reflect"
-
-type (
-	// A configuration function taking a Djinn pointer.
-	Conf func(*Djinn) error
-
-	conf struct {
-		CacheOn bool
-	}
+import (
+	"sort"
 )
 
-func defaultconf() *conf {
-	return &conf{
-		CacheOn: false,
+type ConfigFn func(*Djinn) error
+
+type Config interface {
+	Order() int
+	Configure(*Djinn) error
+}
+
+type config struct {
+	order int
+	fn    ConfigFn
+}
+
+func DefaultConfig(fn ConfigFn) Config {
+	return config{50, fn}
+}
+
+func NewConfig(order int, fn ConfigFn) Config {
+	return config{order, fn}
+}
+
+func (c config) Order() int {
+	return c.order
+}
+
+func (c config) Configure(d *Djinn) error {
+	return c.fn(d)
+}
+
+type configList []Config
+
+func (c configList) Len() int {
+	return len(c)
+}
+
+func (c configList) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
+}
+
+func (c configList) Less(i, j int) bool {
+	return c[i].Order() < c[j].Order()
+}
+
+type Configuration interface {
+	AddConfig(...Config)
+	AddFn(...ConfigFn)
+	Configure() error
+	Configured() bool
+}
+
+type configuration struct {
+	d          *Djinn
+	configured bool
+	list       configList
+}
+
+func newConfiguration(d *Djinn, conf ...Config) *configuration {
+	c := &configuration{
+		d:    d,
+		list: builtIns,
+	}
+	c.AddConfig(conf...)
+	return c
+}
+
+func (c *configuration) AddConfig(conf ...Config) {
+	c.list = append(c.list, conf...)
+}
+
+func (c *configuration) AddFn(fns ...ConfigFn) {
+	for _, fn := range fns {
+		c.list = append(c.list, DefaultConfig(fn))
 	}
 }
 
-// SetConf takes any number of Conf functions to configure the Djinn.
-func (j *Djinn) SetConf(opts ...Conf) error {
-	for _, opt := range opts {
-		if err := opt(j); err != nil {
+func configure(d *Djinn, conf ...Config) error {
+	for _, c := range conf {
+		err := c.Configure(d)
+		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// Cache is a Conf function that sets the Djinn cache on, using the provided Cache.
-func CacheOn(c Cache) Conf {
-	return func(j *Djinn) error {
-		j.Cache = c
-		return j.SetConfBool("CacheOn", true)
+func (c *configuration) Configure() error {
+	sort.Sort(c.list)
+
+	err := configure(c.d, c.list...)
+	if err == nil {
+		c.configured = true
 	}
+
+	return err
 }
 
-func (j *Djinn) addloaders(loaders ...TemplateLoader) {
-	for _, l := range loaders {
-		j.Loaders = append(j.Loaders, l)
-	}
+func (c *configuration) Configured() bool {
+	return c.configured
 }
 
-// Loaders is a Conf function that adds template loaders to the Djinn.
-func Loaders(loaders ...TemplateLoader) Conf {
-	return func(j *Djinn) error {
-		j.addloaders(loaders...)
+var builtIns = []Config{
+	config{1000, configCache},
+}
+
+func configCache(d *Djinn) error {
+	if d.Cache == nil {
+		d.Cache = TLRUCache(100, true)
+	}
+	return nil
+}
+
+func SetCache(c Cache) Config {
+	return DefaultConfig(
+		func(d *Djinn) error {
+			d.Cache = c
+			return nil
+		})
+}
+
+func SetLoaders(l ...Loader) Config {
+	return DefaultConfig(func(d *Djinn) error {
+		d.AddLoaders(l...)
 		return nil
-	}
+	})
 }
 
-func (j *Djinn) addfunctions(f ...map[string]interface{}) {
-	for _, m := range f {
-		for k, v := range m {
-			j.FuncMap[k] = v
+func SetTemplateFunctions(f ...map[string]interface{}) Config {
+	return DefaultConfig(func(d *Djinn) error {
+		for _, ff := range f {
+			d.AddFuncs(ff)
 		}
-	}
-}
-
-// TemplateFunctions is a Conf function adding template functions through any
-// number of string-interface maps.
-func TemplateFunctions(f ...map[string]interface{}) Conf {
-	return func(j *Djinn) error {
-		j.addfunctions(f...)
 		return nil
-	}
-}
-
-func (j *Djinn) elem() reflect.Value {
-	v := reflect.ValueOf(j)
-	return v.Elem()
-}
-
-func (j *Djinn) getfield(fieldname string) reflect.Value {
-	return j.elem().FieldByName(fieldname)
-}
-
-func (j *Djinn) SetConfBool(fieldname string, as bool) error {
-	f := j.getfield(fieldname)
-	if f.CanSet() {
-		f.SetBool(as)
-		return nil
-	}
-	return DjinnError("could not set field %s as %t", fieldname, as)
+	})
 }

@@ -26,4 +26,5 @@ _testmain.go
 Godeps/*
 !Godeps/Godeps.json
 
+*.html
 *.out

@@ -4,6 +4,4 @@
 [![Coverage Status](https://coveralls.io/repos/thrisp/djinn/badge.png?branch=master)](https://coveralls.io/r/thrisp/djinn?branch=master)
 [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/thrisp/djinn/master/LICENSE)
 
-[http://thrisp.github.io/djinn](http://thrisp.github.io/djinn)
-
 html templating tools with nesting, caching and multiple loaders using the [Go html/template library](http://golang.org/pkg/html/template/)
