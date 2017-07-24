@@ -23,11 +23,11 @@ var m2 map[string]string = map[string]string{
 	"plaintext.html":                  "<Plain>",
 }
 
-var J1 *Djinn = New(Loaders(MapLoader(m1), MapLoader(m2)))
+var J1 *Djinn = New(SetLoaders(MapLoader(m1), MapLoader(m2)))
 
-var J2 *Djinn = New(Loaders(DirLoader("./test/templates"), DirLoader("./test/additional/templates")))
+var J2 *Djinn = New(SetLoaders(DirLoader("./test/templates"), DirLoader("./test/additional/templates")))
 
-var J3 *Djinn = New(Loaders(MapLoader(m1), DirLoader("./test/additional/templates")))
+var J3 *Djinn = New(SetLoaders(MapLoader(m1), DirLoader("./test/additional/templates")))
 
 type TemplateData struct {
 	Title string
@@ -148,9 +148,12 @@ func TestConfigure(t *testing.T) {
 	m["testingTmpl"] = "testing template"
 	mm := make(map[string]interface{})
 	mm["testingFn"] = tmplfnc
-	c := New(CacheOn(TLRUCache(1)), Loaders(MapLoader(m)), TemplateFunctions(mm))
+	c := New(SetCache(TLRUCache(1, true)),
+		SetLoaders(MapLoader(m)),
+		SetTemplateFunctions(mm),
+	)
 	c.Configure()
-	if c.Cache == nil || c.cached == false {
+	if c.Cache == nil || c.On() == false {
 		t.Errorf("Cache configuration not configured as expected.")
 	}
 	_, err := c.Fetch("testingTmpl")
@@ -175,7 +178,7 @@ var getTests = []struct {
 func TestGet(t *testing.T) {
 	t1, _ := template.New("testing/template/1").Parse(`{{define "T"}}Hello, {{.}}!{{end}}`)
 	for _, tt := range getTests {
-		lru := TLRUCache(0)
+		lru := TLRUCache(0, true)
 		lru.Add(tt.keyToAdd, t1)
 		val, ok := lru.Get(tt.keyToGet)
 		if ok != tt.expectedOk {
@@ -188,7 +191,7 @@ func TestGet(t *testing.T) {
 
 func TestRemove(t *testing.T) {
 	t2, _ := template.New("testing/template/2").Parse(`{{define "T"}}Hello, {{.}}!{{end}}`)
-	lru := TLRUCache(0)
+	lru := TLRUCache(0, true)
 	lru.Add("t2Key", t2)
 	if val, ok := lru.Get("t2Key"); !ok {
 		t.Fatal("TestRemove returned no match")

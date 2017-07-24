@@ -9,17 +9,15 @@ import (
 
 // The primary renderer, containing loaders, template functions, cache, & configuration.
 type Djinn struct {
-	*settings
 	Configuration
 	*LoaderSet
 	*FuncSet
 	Cache
 }
 
-// Empty returns an empty Djinn with provided Config applied immediatly.
+// Empty returns an empty Djinn with provided Config applied immediately.
 func Empty(cnf ...Config) *Djinn {
 	d := &Djinn{
-		settings:  defaultSettings(),
 		LoaderSet: NewLoaderSet(),
 		FuncSet:   NewFuncSet(),
 	}
@@ -39,7 +37,7 @@ func New(cnf ...Config) *Djinn {
 // data. Template is searched for in the cache, if enabled, then from assembling
 // the from the tempalte Djinn loaders. Returns any ocurring errors.
 func (d *Djinn) Render(w io.Writer, name string, data interface{}) error {
-	if d.cached {
+	if d.On() {
 		if tmpl, ok := d.Cache.Get(name); ok {
 			return tmpl.Execute(w, data)
 		}
@@ -61,7 +59,7 @@ func (d *Djinn) Render(w io.Writer, name string, data interface{}) error {
 // Given a string name, Fetch attempts to get a *template.Template from cache
 // or loaders, returning any error.
 func (d *Djinn) Fetch(name string) (*template.Template, error) {
-	if d.cached {
+	if d.On() {
 		if tmpl, ok := d.Cache.Get(name); ok {
 			return tmpl, nil
 		}
@@ -152,7 +150,7 @@ func (d *Djinn) assemble(name string) (*template.Template, error) {
 		}
 	}
 
-	if d.cached {
+	if d.On() {
 		d.Cache.Add(name, rootTemplate)
 	}
 

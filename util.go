@@ -2,16 +2,6 @@ package djinn
 
 import "fmt"
 
-type settings struct {
-	cached bool
-}
-
-func defaultSettings() *settings {
-	return &settings{
-		cached: true,
-	}
-}
-
 type FuncSet struct {
 	f map[string]interface{}
 }

@@ -104,35 +104,32 @@ func (c *configuration) Configured() bool {
 }
 
 var builtIns = []Config{
-	config{1000, setCache},
+	config{1000, configCache},
 }
 
-func setCache(d *Djinn) error {
-	if d.cached {
-		if d.Cache == nil {
-			d.Cache = TLRUCache(100)
-		}
+func configCache(d *Djinn) error {
+	if d.Cache == nil {
+		d.Cache = TLRUCache(100, true)
 	}
 	return nil
 }
 
-func CacheOn(c Cache) Config {
+func SetCache(c Cache) Config {
 	return DefaultConfig(
 		func(d *Djinn) error {
 			d.Cache = c
-			d.cached = true
 			return nil
 		})
 }
 
-func Loaders(l ...Loader) Config {
+func SetLoaders(l ...Loader) Config {
 	return DefaultConfig(func(d *Djinn) error {
 		d.AddLoaders(l...)
 		return nil
 	})
 }
 
-func TemplateFunctions(f ...map[string]interface{}) Config {
+func SetTemplateFunctions(f ...map[string]interface{}) Config {
 	return DefaultConfig(func(d *Djinn) error {
 		for _, ff := range f {
 			d.AddFuncs(ff)

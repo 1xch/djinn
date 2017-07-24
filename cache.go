@@ -13,6 +13,8 @@ type Cache interface {
 	Get(string) (*template.Template, bool)
 	Remove(string)
 	Clear()
+	On() bool
+	SetCaching(bool)
 }
 
 type tlruCache struct {
@@ -20,14 +22,16 @@ type tlruCache struct {
 	MaxEntries int
 	list       *list.List
 	cache      map[string]*list.Element
+	on         bool
 }
 
 // Returns a TLRU cache interface
-func TLRUCache(maxentries int) *tlruCache {
+func TLRUCache(maxentries int, on bool) *tlruCache {
 	return &tlruCache{
+		MaxEntries: maxentries,
 		list:       list.New(),
 		cache:      make(map[string]*list.Element),
-		MaxEntries: maxentries,
+		on:         on,
 	}
 }
 
@@ -89,6 +93,14 @@ func (c *tlruCache) Clear() {
 	c.cache = make(map[string]*list.Element)
 	c.MaxEntries = 0
 	c.Unlock()
+}
+
+func (c *tlruCache) On() bool {
+	return c.on
+}
+
+func (c *tlruCache) SetCaching(to bool) {
+	c.on = to
 }
 
 func (c *tlruCache) removeOldest() {
